@@ -81,7 +81,7 @@ class TexasScheduler {
                 continue;
             } else {
                 // filter avaliable dates that's under 7 days
-                const avaliableDates = locationData.LocationAvailabilityDates.filter(date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms('120d') && date.AvailableTimeSlots.length > 0);
+                const avaliableDates = locationData.LocationAvailabilityDates.filter(date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms('7d') && date.AvailableTimeSlots.length > 0);
                 if (avaliableDates.length === 0) {
                     console.log(`[INFO] ${location.Name} is not avaliable in around 7 days`);
                     continue;
