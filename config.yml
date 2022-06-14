@@ -1,0 +1,21 @@
+personalInfo:
+  firstName: 'John'
+  lastName: 'Doe'
+  # Date of birth (MM/DD/YYYY)
+  dob: '01/01/2001'
+  # Use real email to get appointment infomation
+  email: 'test@gmail.com'
+  # Not really needed but it's good to have a real one
+  last4SSN: '0000'
+
+location:
+  # The time interval (in ms) the app will recheck for newer dates
+  interval: 5000
+  # Zipcode of your location
+  zipCode: '75023'
+  # Filter DPS location by distance from the zipcode
+  miles: 15
+  # Put empty ('') for any day
+  preferredDays: 'Monday'
+  # Put true/false without quotes if you want to book only same day appointment
+  sameDay: true

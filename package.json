@@ -1,0 +1,32 @@
+{
+  "name": "texas-dps-scheduler",
+  "version": "1.0.0",
+  "description": "Texas DPS Automatic Scheduler",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "ts-node src/index.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phamleduy04/texas-dps-scheduler.git"
+  },
+  "author": "phamleduy04",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/phamleduy04/texas-dps-scheduler/issues"
+  },
+  "homepage": "https://github.com/phamleduy04/texas-dps-scheduler#readme",
+  "devDependencies": {
+    "@types/node": "^17.0.42",
+    "ts-node": "^10.8.1",
+    "tslib": "^2.4.0",
+    "typescript": "^4.7.3"
+  },
+  "dependencies": {
+    "axios": "^0.27.2",
+    "js-yaml": "^4.1.0",
+    "undici": "^5.5.1",
+    "yaml": "^2.1.1"
+  }
+}
