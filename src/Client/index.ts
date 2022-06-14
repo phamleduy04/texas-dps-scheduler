@@ -10,7 +10,7 @@ import type { AvaliableLocationDatesPayload, AvaliableLocationDatesResponse, Ava
 import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload } from '../Interfaces/BookSlot';
 
-const preferredDayList: any = import('../Assets/preferredDay.json');
+import preferredDayList from '../Assets/preferredDay';
 
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
