@@ -10,11 +10,11 @@ export interface BookSlotPayload {
     HomePhone: string;
     Last4Ssn: string;
     LastName: string;
-    // tried with multiple number and the only thing that changed was the RequiredDocuments field 
+    // tried with multiple number and the only thing that changed was the RequiredDocuments field
     ResponseId: number;
-    SendSms: boolean,
-    ServiceTypeId: number,
+    SendSms: boolean;
+    ServiceTypeId: number;
     // not sure about this
-    SiteId: number,
-    SpanishLanguage: "N" | "Y",
+    SiteId: number;
+    SpanishLanguage: 'N' | 'Y';
 }

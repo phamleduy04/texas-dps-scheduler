@@ -1,4 +1,3 @@
-import TexasScheduler from "./Client";
+import TexasScheduler from './Client';
 
 new TexasScheduler();
-

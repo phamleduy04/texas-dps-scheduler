@@ -15,9 +15,10 @@ import preferredDayList from '../Assets/preferredDay';
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
     public config = this.parseConfig();
-    public avaliableLocation : AvaliableLocationResponse[] | null = null;
+    public avaliableLocation: AvaliableLocationResponse[] | null = null;
     public constructor() {
-        if (this.config.appSettings.webserver) require('http').createServer((req:any, res:any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
+        // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
+        if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
         console.info('[INFO] Texas Scheduler is starting...');
         console.info('[INFO] Requesting Avaliable Location....');
         this.run();
@@ -29,12 +30,12 @@ class TexasScheduler {
         setInterval(() => this.getLocationDatesAll(), this.config.appSettings.interval);
     }
 
-    public parseConfig():Config {
+    public parseConfig(): Config {
         if (!existsSync('./config.yml')) {
             console.error('[ERROR] Not found config.yml file');
             process.exit(0);
         }
-    
+
         const file = readFileSync('././config.yml', 'utf8');
         const configData = YAML.parse(file);
         configData.location.preferredDays = this.parsePreferredDays(configData.location.preferredDays);
@@ -43,7 +44,7 @@ class TexasScheduler {
     }
 
     public async getResponseId() {
-        const requestBody : EligibilityPayload = {
+        const requestBody: EligibilityPayload = {
             FirstName: this.config.personalInfo.firstName,
             LastName: this.config.personalInfo.lastName,
             DateOfBirth: this.config.personalInfo.dob,
@@ -55,14 +56,14 @@ class TexasScheduler {
     }
 
     public async requestAvaliableLocation(): Promise<void> {
-        const requestBody : AvaliableLocationPayload = {
-            CityName: "",
+        const requestBody: AvaliableLocationPayload = {
+            CityName: '',
             PreferredDay: this.config.location.preferredDays,
             // 71 is new driver license
             TypeId: 71,
             ZipCode: this.config.location.zipCode,
         };
-        const response:AvaliableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
+        const response: AvaliableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
             .then(res => res.body.json())
             .then(res => res.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles));
         console.log(`[INFO] Found ${response.length} avaliable location that match your criteria`);
@@ -81,13 +82,15 @@ class TexasScheduler {
                 continue;
             } else {
                 // filter avaliable dates that's under 7 days
-                const avaliableDates = locationData.LocationAvailabilityDates.filter(date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms('7d') && date.AvailableTimeSlots.length > 0);
+                const avaliableDates = locationData.LocationAvailabilityDates.filter(
+                    date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms('7d') && date.AvailableTimeSlots.length > 0,
+                );
                 if (avaliableDates.length === 0) {
                     console.log(`[INFO] ${location.Name} is not avaliable in around 7 days`);
                     continue;
                 } else {
                     // console.log(avaliableDates);
-                    const booking = avaliableDates[0].AvailableTimeSlots[0]
+                    const booking = avaliableDates[0].AvailableTimeSlots[0];
                     console.log(`[INFO] ${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
                     this.holdSlot(booking, location.Id);
                     break;
@@ -103,34 +106,34 @@ class TexasScheduler {
             SameDay: this.config.location.sameDay,
             StartDate: null,
             TypeId: 71,
-        }
-        const response : AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
+        };
+        const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
         return response;
     }
 
-    private async requestApi(path: string, method: HttpMethod , body: object) {
+    private async requestApi(path: string, method: HttpMethod, body: object) {
         const response = await this.requestInstance.request({
             method,
             path,
             headers: {
-                'Content-Type': 'application/json;charset=UTF-8', 
-                'Origin': 'https://public.txdpsscheduler.com', 
-                'Referer': 'https://public.txdpsscheduler.com/'
+                'Content-Type': 'application/json;charset=UTF-8',
+                Origin: 'https://public.txdpsscheduler.com',
+                Referer: 'https://public.txdpsscheduler.com/',
             },
             body: JSON.stringify(body),
         });
         return await response;
-    } 
+    }
 
-    private async holdSlot(booking : AvaliableTimeSlots, locationId: number) {
-        const requestBody : HoldSlotPayload = {
+    private async holdSlot(booking: AvaliableTimeSlots, locationId: number) {
+        const requestBody: HoldSlotPayload = {
             DateOfBirth: this.config.personalInfo.dob,
             FirstName: this.config.personalInfo.firstName,
             LastName: this.config.personalInfo.lastName,
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             SlotId: booking.SlotId,
         };
-        const response : HoldSlotResponse = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json());
+        const response: HoldSlotResponse = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json());
         if (response.SlotHeldSuccessfully !== true) {
             console.log('[INFO] Failed to hold slot');
             return;
@@ -146,19 +149,19 @@ class TexasScheduler {
             AdaRequired: false,
             BookingDateTime: booking.StartDateTime,
             BookingDuration: booking.Duration,
-            CardNumber: "",
-            CellPhone: this.config.personalInfo.phoneNumber ? this.config.personalInfo.phoneNumber : "",
+            CardNumber: '',
+            CellPhone: this.config.personalInfo.phoneNumber ? this.config.personalInfo.phoneNumber : '',
             DateOfBirth: this.config.personalInfo.dob,
             Email: this.config.personalInfo.email,
             FirstName: this.config.personalInfo.firstName,
             LastName: this.config.personalInfo.lastName,
-            HomePhone: "",
+            HomePhone: '',
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             ResponseId: await this.getResponseId(),
             SendSms: this.config.personalInfo.phoneNumber ? true : false,
             ServiceTypeId: 71,
             SiteId: locationId,
-            SpanishLanguage: "N"
+            SpanishLanguage: 'N',
         };
 
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
@@ -167,7 +170,7 @@ class TexasScheduler {
             process.exit(0);
         } else {
             console.log('[INFO] Failed to book slot');
-            console.log(await response.body.text())
+            console.log(await response.body.text());
         }
     }
 
@@ -177,7 +180,7 @@ class TexasScheduler {
         return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
     }
 
-    private parsePreferredDays(preferredDay: string):number {
+    private parsePreferredDays(preferredDay: string): number {
         preferredDay = preferredDay.toLowerCase();
         if (preferredDayList[preferredDay]) return preferredDayList[preferredDay];
         else return 0;
