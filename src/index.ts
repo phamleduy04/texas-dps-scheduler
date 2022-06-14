@@ -1,4 +1,4 @@
-import TexasScheduler from "./client/app";
+import TexasScheduler from "./Client";
 
 new TexasScheduler();
 
