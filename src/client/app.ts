@@ -37,6 +37,7 @@ class TexasScheduler {
         const file = readFileSync('././config.yml', 'utf8');
         const configData = YAML.parse(file);
         configData.location.preferredDays = this.parsePreferredDays(configData.location.preferredDays);
+        configData.personalInfo.phoneNumber = this.parsePhoneNumber(configData.personalInfo.phoneNumber);
         return configData;
     }
 
@@ -145,7 +146,7 @@ class TexasScheduler {
             BookingDateTime: booking.StartDateTime,
             BookingDuration: booking.Duration,
             CardNumber: "",
-            CellPhone: "",
+            CellPhone: this.config.personalInfo.phoneNumber ? this.config.personalInfo.phoneNumber : "",
             DateOfBirth: this.config.personalInfo.dob,
             Email: this.config.personalInfo.email,
             FirstName: this.config.personalInfo.firstName,
@@ -153,7 +154,7 @@ class TexasScheduler {
             HomePhone: "",
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             ResponseId: await this.getResponseId(),
-            SendSms: false,
+            SendSms: this.config.personalInfo.phoneNumber ? true : false,
             ServiceTypeId: 71,
             SiteId: locationId,
             SpanishLanguage: "N"
@@ -169,7 +170,11 @@ class TexasScheduler {
         }
     }
 
-
+    private parsePhoneNumber(phoneNumber: string) {
+        if (!phoneNumber) return null;
+        // Phone format is ########## and we want to convert it to (###) ###-####
+        return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
+    }
 
     private parsePreferredDays(preferredDay: string):number {
         preferredDay = preferredDay.toLowerCase();
@@ -193,6 +198,7 @@ interface personalInfo {
     dob: string,
     email: string,
     lastFourSSN: string,
+    phoneNumber?: string,
 }
 
 interface location {

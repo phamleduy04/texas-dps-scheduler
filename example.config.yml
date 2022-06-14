@@ -7,6 +7,9 @@ personalInfo:
   email: ''
   # Not really needed but good to have a real one
   lastFourSSN: '1001'
+  # If you want to recieve notificaion through phone, if not keep blank
+  # WARNING: Use number only (Ex: 111111111)
+  phoneNumber: ""
 
 location:
   # The time interval (in ms) the app will recheck for newer dates
