@@ -27,4 +27,4 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           push: true
-          tags: ghcr.io/${{ github.actor }}/discord-confession-bot:alpine
+          tags: ghcr.io/${{ github.repository }}:latest
