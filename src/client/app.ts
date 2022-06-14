@@ -17,7 +17,7 @@ class TexasScheduler {
     public config = this.parseConfig();
     public avaliableLocation : AvaliableLocationResponse[] | null = null;
     public constructor() {
-        if (this.config.appSettings.webserver) require('http').createServer((req:any, res:any) => res.end('Bot is alive!')).listen(process.env.PORT)
+        if (this.config.appSettings.webserver) require('http').createServer((req:any, res:any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
         console.info('[INFO] Texas Scheduler is starting...');
         console.info('[INFO] Requesting Avaliable Location....');
         this.run();
