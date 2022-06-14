@@ -12,8 +12,6 @@ personalInfo:
   phoneNumber: ""
 
 location:
-  # The time interval (in ms) the app will recheck for newer dates
-  interval: 10000
   # Zipcode of your location
   zipCode: '75067'
   # Filter DPS location by distance from the zipcode
@@ -22,3 +20,9 @@ location:
   preferredDays: 'Monday'
   # Put true/false without quotes if you want to book only same day appointment
   sameDay: false
+
+appSettings:
+  # The time interval (in ms) the app will recheck for newer dates
+  interval: 10000
+  # Set this to true if you using replit, heroku or something equivalent
+  webserver: false

@@ -17,6 +17,7 @@ class TexasScheduler {
     public config = this.parseConfig();
     public avaliableLocation : AvaliableLocationResponse[] | null = null;
     public constructor() {
+        if (this.config.appSettings.webserver) require('http').createServer((req:any, res:any) => res.end('Bot is alive!')).listen(process.env.PORT)
         console.info('[INFO] Texas Scheduler is starting...');
         console.info('[INFO] Requesting Avaliable Location....');
         this.run();
@@ -25,7 +26,7 @@ class TexasScheduler {
     public async run() {
         await this.requestAvaliableLocation();
         await this.getLocationDatesAll();
-        setInterval(() => this.getLocationDatesAll(), ms('10s'));
+        setInterval(() => this.getLocationDatesAll(), this.config.appSettings.interval);
     }
 
     public parseConfig():Config {
@@ -188,25 +189,29 @@ class TexasScheduler {
 }
 
 interface Config {
-    personalInfo: personalInfo,
-    location: location,
+    personalInfo: personalInfo;
+    location: location;
+    appSettings: appSettings;
 }
 
 interface personalInfo {
-    firstName: string,
-    lastName: string,
-    dob: string,
-    email: string,
-    lastFourSSN: string,
-    phoneNumber?: string,
+    firstName: string;
+    lastName: string;
+    dob: string;
+    email: string;
+    lastFourSSN: string;
+    phoneNumber?: string;
 }
 
 interface location {
-    interval: number,
-    zipCode: string,
-    miles: number,
-    preferredDays: number,
-    sameDay: boolean,
+    zipCode: string;
+    miles: number;
+    preferredDays: number;
+    sameDay: boolean;
 }
 
+interface appSettings {
+    interval: number;
+    webserver: boolean;
+}
 export default TexasScheduler;
