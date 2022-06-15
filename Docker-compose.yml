@@ -6,4 +6,3 @@ services:
     container_name: texas-dps-scheduler
     volumes:
       - ./config.yml:/config.yml
-    restart: always
