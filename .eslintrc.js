@@ -1,5 +1,5 @@
 module.exports = {
-    ignorePatterns: ['node_modules/', 'dist/', 'build/', 'coverage/'],
+    ignorePatterns: ['node_modules/', 'dist/', 'build/', 'coverage/', '.eslintrc.js'],
     parser: '@typescript-eslint/parser',
     parserOptions: {
         project: 'tsconfig.json',
@@ -16,7 +16,6 @@ module.exports = {
         node: true,
         jest: true,
     },
-    ignorePatterns: ['.eslintrc.js'],
     rules: {
         'prettier/prettier': [
             'warn',
