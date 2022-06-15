@@ -9,6 +9,7 @@ import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Int
 import type { AvaliableLocationDatesPayload, AvaliableLocationDatesResponse, AvaliableTimeSlots } from '../Interfaces/AvaliableLocationDates';
 import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload } from '../Interfaces/BookSlot';
+import type { ExistBookingPayload } from '../Interfaces/ExistBooking';
 
 import preferredDayList from '../Assets/preferredDay';
 
@@ -25,6 +26,10 @@ class TexasScheduler {
     }
 
     public async run() {
+        if (await this.checkExistBooking()) {
+            console.error('[ERROR] You have existing booking, please cancel it first');
+            process.exit(0);
+        }
         await this.requestAvaliableLocation();
         await this.getLocationDatesAll();
         setInterval(() => this.getLocationDatesAll(), this.config.appSettings.interval);
@@ -41,6 +46,20 @@ class TexasScheduler {
         configData.location.preferredDays = this.parsePreferredDays(configData.location.preferredDays);
         configData.personalInfo.phoneNumber = this.parsePhoneNumber(configData.personalInfo.phoneNumber);
         return configData;
+    }
+
+    private async checkExistBooking() {
+        const requestBody : ExistBookingPayload = {
+            FirstName: this.config.personalInfo.firstName,
+            LastName: this.config.personalInfo.lastName,
+            DateOfBirth: this.config.personalInfo.dob,
+            LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
+        }
+
+        const response = await this.requestApi('/api/Booking', 'POST', requestBody).then(res => res.body.json());
+        // if no booking found, the api will return empty array
+        if (response.length > 0) return true;
+        return false;
     }
 
     public async getResponseId() {
