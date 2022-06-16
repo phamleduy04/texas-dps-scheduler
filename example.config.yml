@@ -23,12 +23,18 @@ location:
   preferredDays: 'Monday'
   # Put true/false without quotes if you want to book only same day appointment
   sameDay: false
+  # Put how many day from today you want to book (7 is a good number)
+  daysAround: 9
 
 appSettings:
+  # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
+  cancelIfExist: true
   # The time interval (in ms) the app will recheck for newer dates
   interval: 10000
   # Set this to true if you using replit, heroku or something equivalent
   webserver: false
+  # Set this to higher if you encounter Header Timeout error. This one is in miliseconds
+  headersTimeout: 20000 
 
 # If you dont know what to change here, dont change it :)
 webhook:

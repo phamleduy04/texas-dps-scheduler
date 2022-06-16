@@ -1,15 +1,18 @@
 import { readFileSync, existsSync } from 'fs';
 import YAML from 'yaml';
 import undici from 'undici';
-import type { HttpMethod } from 'undici/types/dispatcher';
 import ms from 'ms';
+import pQueue from 'p-queue';
+import sleep from 'timers/promises';
 
+import type { HttpMethod } from 'undici/types/dispatcher';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Interfaces/AvaliableLocation';
 import type { AvaliableLocationDatesPayload, AvaliableLocationDatesResponse, AvaliableTimeSlots } from '../Interfaces/AvaliableLocationDates';
 import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
-import type { ExistBookingPayload } from '../Interfaces/ExistBooking';
+import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
+import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
 import type { webhookPayload } from '../Interfaces/webhook';
 
 import preferredDayList from '../Assets/preferredDay';
@@ -17,7 +20,11 @@ import preferredDayList from '../Assets/preferredDay';
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
     public config = this.parseConfig();
-    public avaliableLocation: AvaliableLocationResponse[] | null = null;
+    private avaliableLocation: AvaliableLocationResponse[] | null = null;
+    private isBooked = false;
+    private isHolded = false;
+    private queue = new pQueue();
+
     public constructor() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
         if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
@@ -27,13 +34,19 @@ class TexasScheduler {
     }
 
     public async run() {
-        if (await this.checkExistBooking()) {
-            console.error('[ERROR] You have existing booking, please cancel it first');
-            process.exit(0);
+        const existBooking = await this.checkExistBooking();
+        if (existBooking.exist) {
+            console.log(`[INFO] You have an existing booking at ${existBooking.response[0].SiteName}`);
+            if (this.config.appSettings.cancelIfExist) {
+                console.log('[INFO] Canceling existing booking....');
+                await this.cancelBooking(existBooking.response[0].ConfirmationNumber);
+            } else {
+                console.error('[ERROR] You have existing booking, please cancel it first');
+                process.exit(0);
+            }
         }
         await this.requestAvaliableLocation();
         await this.getLocationDatesAll();
-        setInterval(() => this.getLocationDatesAll(), this.config.appSettings.interval);
     }
 
     public parseConfig(): Config {
@@ -57,10 +70,26 @@ class TexasScheduler {
             LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
         };
 
-        const response = await this.requestApi('/api/Booking', 'POST', requestBody).then(res => res.body.json());
+        const response: ExistBookingResponse[] = await this.requestApi('/api/Booking', 'POST', requestBody).then(res => res.body.json());
         // if no booking found, the api will return empty array
-        if (response.length > 0) return true;
-        return false;
+        if (response.length > 0) return { exist: true, response };
+        return { exist: false, response };
+    }
+
+    private async cancelBooking(ConfirmationNumber: string) {
+        const requestBody: CancelBookingPayload = {
+            ConfirmationNumber,
+            DateOfBirth: this.config.personalInfo.dob,
+            LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
+            FirstName: this.config.personalInfo.firstName,
+            LastName: this.config.personalInfo.lastName,
+        };
+        const response = await this.requestApi('/api/CancelBooking', 'POST', requestBody);
+        if (response.statusCode === 200) console.log('[INFO] Canceled booking successfully');
+        else {
+            console.error('[ERROR] Failed to cancel booking. Please cancel it manually');
+            process.exit(0);
+        }
     }
 
     public async getResponseId() {
@@ -95,27 +124,11 @@ class TexasScheduler {
     private async getLocationDatesAll() {
         console.log('[INFO] Checking Avaliable Location Dates....');
         if (!this.avaliableLocation) return;
-        for (const location of this.avaliableLocation) {
-            const locationData = await this.getLocationDates(location);
-            if (locationData.LocationAvailabilityDates?.length === 0) {
-                console.log(`[INFO] ${location.Name} is not avaliable`);
-                continue;
-            } else {
-                // filter avaliable dates that's under 7 days
-                const avaliableDates = locationData.LocationAvailabilityDates.filter(
-                    date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms('7d') && date.AvailableTimeSlots.length > 0,
-                );
-                if (avaliableDates.length === 0) {
-                    console.log(`[INFO] ${location.Name} is not avaliable in around 7 days`);
-                    continue;
-                } else {
-                    // console.log(avaliableDates);
-                    const booking = avaliableDates[0].AvailableTimeSlots[0];
-                    console.log(`[INFO] ${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
-                    this.holdSlot(booking, location);
-                    break;
-                }
-            }
+        const getLocationFunctions = this.avaliableLocation.map(location => () => this.getLocationDates(location));
+        for (;;) {
+            console.log('--------------------------------------------------------------------------------');
+            await this.queue.addAll(getLocationFunctions).catch(() => null);
+            await sleep.setTimeout(this.config.appSettings.interval);
         }
     }
 
@@ -128,7 +141,18 @@ class TexasScheduler {
             TypeId: this.config.personalInfo.typeId || 71,
         };
         const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
-        return response;
+        const avaliableDates = response.LocationAvailabilityDates.filter(
+            date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms(`${this.config.location.daysAround}d`) && date.AvailableTimeSlots.length > 0,
+        );
+        if (avaliableDates.length !== 0) {
+            const booking = avaliableDates[0].AvailableTimeSlots[0];
+            console.log(`[INFO] ${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
+            if (!this.queue.isPaused) this.queue.pause();
+            this.holdSlot(booking, location);
+            return Promise.resolve(true);
+        }
+        console.log(`[INFO] ${location.Name} is not avaliable in around ${this.config.location.daysAround} days`);
+        return Promise.reject();
     }
 
     private async requestApi(path: string, method: HttpMethod, body: object) {
@@ -140,13 +164,14 @@ class TexasScheduler {
                 Origin: 'https://public.txdpsscheduler.com',
                 Referer: 'https://public.txdpsscheduler.com/',
             },
-            headersTimeout: ms('20s'),
+            headersTimeout: this.config.appSettings.headersTimeout,
             body: JSON.stringify(body),
         });
         return await response;
     }
 
     private async holdSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
+        if (this.isHolded) return;
         const requestBody: HoldSlotPayload = {
             DateOfBirth: this.config.personalInfo.dob,
             FirstName: this.config.personalInfo.firstName,
@@ -157,13 +182,16 @@ class TexasScheduler {
         const response: HoldSlotResponse = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json());
         if (response.SlotHeldSuccessfully !== true) {
             console.log('[INFO] Failed to hold slot');
+            if (this.queue.isPaused) this.queue.start();
             return;
         }
         console.log('[INFO] Slot hold successfully');
+        this.isHolded = true;
         await this.bookSlot(booking, location);
     }
 
     private async bookSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
+        if (this.isBooked) return;
         console.log('[INFO] Booking slot....');
         const requestBody: BookSlotPayload = {
             AdaRequired: false,
@@ -188,6 +216,7 @@ class TexasScheduler {
         if (response.statusCode === 200) {
             const bookingInfo: BookSlotResponse = await response.body.json();
             const appointmentURL = `https://public.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
+            this.isBooked = true;
             console.log(`[INFO] Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             console.log(`[INFO] Visiting this link to print your booking:`);
             console.log(`[INFO] ${appointmentURL}`);
@@ -204,6 +233,7 @@ class TexasScheduler {
                 );
             process.exit(0);
         } else {
+            if (this.queue.isPaused) this.queue.start();
             console.log('[INFO] Failed to book slot');
             console.log(await response.body.text());
         }
@@ -227,7 +257,7 @@ class TexasScheduler {
         if (response.statusCode === 200) console.log('[INFO] Webhook sent successfully');
         else {
             console.log('[ERROR] Failed to send webhook');
-            console.log(await response.body.json());
+            console.log(await response.body.text());
         }
     }
 
@@ -266,11 +296,14 @@ interface location {
     miles: number;
     preferredDays: number;
     sameDay: boolean;
+    daysAround: number;
 }
 
 interface appSettings {
+    cancelIfExist: boolean;
     interval: number;
     webserver: boolean;
+    headersTimeout: number;
 }
 
 interface webhook {
