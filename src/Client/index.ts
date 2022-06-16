@@ -80,7 +80,7 @@ class TexasScheduler {
             CityName: '',
             PreferredDay: this.config.location.preferredDays,
             // 71 is new driver license
-            TypeId: 71,
+            TypeId: this.config.personalInfo.typeId || 71,
             ZipCode: this.config.location.zipCode,
         };
         const response: AvaliableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
@@ -125,7 +125,7 @@ class TexasScheduler {
             PreferredDay: this.config.location.preferredDays,
             SameDay: this.config.location.sameDay,
             StartDate: null,
-            TypeId: 71,
+            TypeId: this.config.personalInfo.typeId || 71,
         };
         const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
         return response;
@@ -178,7 +178,7 @@ class TexasScheduler {
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             ResponseId: await this.getResponseId(),
             SendSms: this.config.personalInfo.phoneNumber ? true : false,
-            ServiceTypeId: 71,
+            ServiceTypeId: this.config.personalInfo.typeId || 71,
             SiteId: location.Id,
             SpanishLanguage: 'N',
         };
@@ -257,6 +257,7 @@ interface personalInfo {
     email: string;
     lastFourSSN: string;
     phoneNumber?: string;
+    typeId?: number;
 }
 
 interface location {

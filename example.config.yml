@@ -10,6 +10,9 @@ personalInfo:
   # If you want to recieve notificaion through phone, if not keep blank
   # WARNING: Use number only (Ex: 111111111)
   phoneNumber: ""
+  # Serivce you needed at DPS. Check the full list on https://github.com/phamleduy04/texas-dps-scheduler/wiki/TypeId-list
+  # If you need to apply for Texas DL you don't need to change it
+  typeId: 71
 
 location:
   # Zipcode of your location
