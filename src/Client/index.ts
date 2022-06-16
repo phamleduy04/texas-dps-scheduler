@@ -140,6 +140,7 @@ class TexasScheduler {
                 Origin: 'https://public.txdpsscheduler.com',
                 Referer: 'https://public.txdpsscheduler.com/',
             },
+            headersTimeout: ms('20s'),
             body: JSON.stringify(body),
         });
         return await response;
