@@ -8,8 +8,9 @@ import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Interfaces/AvaliableLocation';
 import type { AvaliableLocationDatesPayload, AvaliableLocationDatesResponse, AvaliableTimeSlots } from '../Interfaces/AvaliableLocationDates';
 import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
-import type { BookSlotPayload } from '../Interfaces/BookSlot';
+import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
 import type { ExistBookingPayload } from '../Interfaces/ExistBooking';
+import type { webhookPayload } from '../Interfaces/webhook';
 
 import preferredDayList from '../Assets/preferredDay';
 
@@ -49,12 +50,12 @@ class TexasScheduler {
     }
 
     private async checkExistBooking() {
-        const requestBody : ExistBookingPayload = {
+        const requestBody: ExistBookingPayload = {
             FirstName: this.config.personalInfo.firstName,
             LastName: this.config.personalInfo.lastName,
             DateOfBirth: this.config.personalInfo.dob,
             LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
-        }
+        };
 
         const response = await this.requestApi('/api/Booking', 'POST', requestBody).then(res => res.body.json());
         // if no booking found, the api will return empty array
@@ -111,7 +112,7 @@ class TexasScheduler {
                     // console.log(avaliableDates);
                     const booking = avaliableDates[0].AvailableTimeSlots[0];
                     console.log(`[INFO] ${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
-                    this.holdSlot(booking, location.Id);
+                    this.holdSlot(booking, location);
                     break;
                 }
             }
@@ -144,7 +145,7 @@ class TexasScheduler {
         return await response;
     }
 
-    private async holdSlot(booking: AvaliableTimeSlots, locationId: number) {
+    private async holdSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
         const requestBody: HoldSlotPayload = {
             DateOfBirth: this.config.personalInfo.dob,
             FirstName: this.config.personalInfo.firstName,
@@ -158,11 +159,10 @@ class TexasScheduler {
             return;
         }
         console.log('[INFO] Slot hold successfully');
-        await this.sleep(2000);
-        await this.bookSlot(booking, locationId);
+        await this.bookSlot(booking, location);
     }
 
-    private async bookSlot(booking: AvaliableTimeSlots, locationId: number) {
+    private async bookSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
         console.log('[INFO] Booking slot....');
         const requestBody: BookSlotPayload = {
             AdaRequired: false,
@@ -179,17 +179,54 @@ class TexasScheduler {
             ResponseId: await this.getResponseId(),
             SendSms: this.config.personalInfo.phoneNumber ? true : false,
             ServiceTypeId: 71,
-            SiteId: locationId,
+            SiteId: location.Id,
             SpanishLanguage: 'N',
         };
 
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
         if (response.statusCode === 200) {
-            console.log('[INFO] Slot booked successfully');
+            const bookingInfo: BookSlotResponse = await response.body.json();
+            const appointmentURL = `https://public.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
+            console.log(`[INFO] Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
+            console.log(`[INFO] Visiting this link to print your booking:`);
+            console.log(`[INFO] ${appointmentURL}`);
+            if (this.config.webhook.enable)
+                await this.sendWebhook(
+                    // this string kinda long so i put it in a array and join it :)
+                    [
+                        `Booking for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName} has been booked.`,
+                        `Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`,
+                        `Location: ${location.Name} DPS`,
+                        `Time: ${booking.FormattedStartDateTime}`,
+                        `Appointment URL: ${appointmentURL}`,
+                    ].join('\n'),
+                );
             process.exit(0);
         } else {
             console.log('[INFO] Failed to book slot');
             console.log(await response.body.text());
+        }
+    }
+
+    private async sendWebhook(message: string) {
+        const requestBody: webhookPayload = {
+            chatGuid: `${this.config.webhook.phoneNumberType};-;${this.config.webhook.phoneNumber}`,
+            tempGuild: '',
+            message,
+            method: this.config.webhook.sendMethod,
+            subject: '',
+            effectId: '',
+            selectedMessageGuild: '',
+        };
+        const response = await undici.request(`${this.config.webhook.url}/api/v1/message/text?password=${this.config.webhook.password}`, {
+            method: 'POST',
+            body: JSON.stringify(requestBody),
+            headers: { 'Content-Type': 'application/json' },
+        });
+        if (response.statusCode === 200) console.log('[INFO] Webhook sent successfully');
+        else {
+            console.log('[ERROR] Failed to send webhook');
+            console.log(await response.body.json());
         }
     }
 
@@ -204,16 +241,13 @@ class TexasScheduler {
         if (preferredDayList[preferredDay]) return preferredDayList[preferredDay];
         else return 0;
     }
-
-    private async sleep(miliseconds: number) {
-        return new Promise(resolve => setTimeout(resolve, miliseconds));
-    }
 }
 
 interface Config {
     personalInfo: personalInfo;
     location: location;
     appSettings: appSettings;
+    webhook: webhook;
 }
 
 interface personalInfo {
@@ -235,5 +269,14 @@ interface location {
 interface appSettings {
     interval: number;
     webserver: boolean;
+}
+
+interface webhook {
+    enable: boolean;
+    url: string;
+    password: string;
+    phoneNumber: string;
+    sendMethod: 'private-api' | 'apple-script';
+    phoneNumberType: 'iMessage' | 'SMS';
 }
 export default TexasScheduler;

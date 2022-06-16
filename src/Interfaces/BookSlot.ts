@@ -10,11 +10,18 @@ export interface BookSlotPayload {
     HomePhone: string;
     Last4Ssn: string;
     LastName: string;
-    // tried with multiple number and the only thing that changed was the RequiredDocuments field
     ResponseId: number;
     SendSms: boolean;
     ServiceTypeId: number;
-    // not sure about this
     SiteId: number;
     SpanishLanguage: 'N' | 'Y';
+}
+
+// Real response have more fields, but we don't need them
+export interface BookSlotResponse {
+    Booking: {
+        BookingId: number;
+        ConfirmationNumber: string;
+        SiteName: string;
+    };
 }
