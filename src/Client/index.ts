@@ -1,9 +1,10 @@
-import { readFileSync, existsSync } from 'fs';
-import YAML from 'yaml';
 import undici from 'undici';
 import ms from 'ms';
 import pQueue from 'p-queue';
 import sleep from 'timers/promises';
+import parseConfig from '../Config';
+import * as log from '../Log';
+import dayjs from 'dayjs';
 
 import type { HttpMethod } from 'undici/types/dispatcher';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
@@ -15,11 +16,9 @@ import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/Ex
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
 import type { webhookPayload } from '../Interfaces/webhook';
 
-import preferredDayList from '../Assets/preferredDay';
-
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
-    public config = this.parseConfig();
+    public config = parseConfig();
     private avaliableLocation: AvaliableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
@@ -28,38 +27,25 @@ class TexasScheduler {
     public constructor() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
         if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
-        console.info('[INFO] Texas Scheduler is starting...');
-        console.info('[INFO] Requesting Avaliable Location....');
+        log.info('Texas Scheduler is starting...');
+        log.info('Requesting Avaliable Location....');
         this.run();
     }
 
     public async run() {
         const existBooking = await this.checkExistBooking();
         if (existBooking.exist) {
-            console.log(`[INFO] You have an existing booking at ${existBooking.response[0].SiteName}`);
+            log.warn(`You have an existing booking at ${existBooking.response[0].SiteName} ${dayjs(existBooking.response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
             if (this.config.appSettings.cancelIfExist) {
-                console.log('[INFO] Canceling existing booking....');
+                log.info('Canceling existing booking....');
                 await this.cancelBooking(existBooking.response[0].ConfirmationNumber);
             } else {
-                console.error('[ERROR] You have existing booking, please cancel it first');
+                log.error('You have existing booking, please cancel it first');
                 process.exit(0);
             }
         }
         await this.requestAvaliableLocation();
         await this.getLocationDatesAll();
-    }
-
-    public parseConfig(): Config {
-        if (!existsSync('./config.yml')) {
-            console.error('[ERROR] Not found config.yml file');
-            process.exit(0);
-        }
-
-        const file = readFileSync('././config.yml', 'utf8');
-        const configData = YAML.parse(file);
-        configData.location.preferredDays = this.parsePreferredDays(configData.location.preferredDays);
-        configData.personalInfo.phoneNumber = this.parsePhoneNumber(configData.personalInfo.phoneNumber);
-        return configData;
     }
 
     private async checkExistBooking() {
@@ -85,9 +71,9 @@ class TexasScheduler {
             LastName: this.config.personalInfo.lastName,
         };
         const response = await this.requestApi('/api/CancelBooking', 'POST', requestBody);
-        if (response.statusCode === 200) console.log('[INFO] Canceled booking successfully');
+        if (response.statusCode === 200) log.info('Canceled booking successfully');
         else {
-            console.error('[ERROR] Failed to cancel booking. Please cancel it manually');
+            log.error('Failed to cancel booking. Please cancel it manually');
             process.exit(0);
         }
     }
@@ -115,14 +101,14 @@ class TexasScheduler {
         const response: AvaliableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
             .then(res => res.body.json())
             .then(res => res.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles));
-        console.log(`[INFO] Found ${response.length} avaliable location that match your criteria`);
-        console.log(`[INFO] ${response.map(el => el.Name).join(', ')}`);
+        log.info(`Found ${response.length} avaliable location that match your criteria`);
+        log.info(`${response.map(el => el.Name).join(', ')}`);
         this.avaliableLocation = response;
         return;
     }
 
     private async getLocationDatesAll() {
-        console.log('[INFO] Checking Avaliable Location Dates....');
+        log.info('Checking Avaliable Location Dates....');
         if (!this.avaliableLocation) return;
         const getLocationFunctions = this.avaliableLocation.map(location => () => this.getLocationDates(location));
         for (;;) {
@@ -146,12 +132,12 @@ class TexasScheduler {
         );
         if (avaliableDates.length !== 0) {
             const booking = avaliableDates[0].AvailableTimeSlots[0];
-            console.log(`[INFO] ${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
+            log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
             if (!this.queue.isPaused) this.queue.pause();
             this.holdSlot(booking, location);
             return Promise.resolve(true);
         }
-        console.log(`[INFO] ${location.Name} is not avaliable in around ${this.config.location.daysAround} days`);
+        log.info(`${location.Name} is not avaliable in around ${this.config.location.daysAround} days`);
         return Promise.reject();
     }
 
@@ -181,18 +167,18 @@ class TexasScheduler {
         };
         const response: HoldSlotResponse = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json());
         if (response.SlotHeldSuccessfully !== true) {
-            console.log('[INFO] Failed to hold slot');
+            log.error('Failed to hold slot');
             if (this.queue.isPaused) this.queue.start();
             return;
         }
-        console.log('[INFO] Slot hold successfully');
+        log.info('Slot hold successfully');
         this.isHolded = true;
         await this.bookSlot(booking, location);
     }
 
     private async bookSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
         if (this.isBooked) return;
-        console.log('[INFO] Booking slot....');
+        log.info('Booking slot....');
         const requestBody: BookSlotPayload = {
             AdaRequired: false,
             BookingDateTime: booking.StartDateTime,
@@ -217,9 +203,9 @@ class TexasScheduler {
             const bookingInfo: BookSlotResponse = await response.body.json();
             const appointmentURL = `https://public.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
             this.isBooked = true;
-            console.log(`[INFO] Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
-            console.log(`[INFO] Visiting this link to print your booking:`);
-            console.log(`[INFO] ${appointmentURL}`);
+            log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
+            log.info(`Visiting this link to print your booking:`);
+            log.info(`${appointmentURL}`);
             if (this.config.webhook.enable)
                 await this.sendWebhook(
                     // this string kinda long so i put it in a array and join it :)
@@ -234,8 +220,8 @@ class TexasScheduler {
             process.exit(0);
         } else {
             if (this.queue.isPaused) this.queue.start();
-            console.log('[INFO] Failed to book slot');
-            console.log(await response.body.text());
+            log.error('Failed to book slot');
+            log.error(await response.body.text());
         }
     }
 
@@ -254,64 +240,12 @@ class TexasScheduler {
             body: JSON.stringify(requestBody),
             headers: { 'Content-Type': 'application/json' },
         });
-        if (response.statusCode === 200) console.log('[INFO] Webhook sent successfully');
+        if (response.statusCode === 200) log.info('[INFO] Webhook sent successfully');
         else {
-            console.log('[ERROR] Failed to send webhook');
-            console.log(await response.body.text());
+            log.error('Failed to send webhook');
+            log.error(await response.body.text());
         }
     }
-
-    private parsePhoneNumber(phoneNumber: string) {
-        if (!phoneNumber) return null;
-        // Phone format is ########## and we want to convert it to (###) ###-####
-        return phoneNumber.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3');
-    }
-
-    private parsePreferredDays(preferredDay: string): number {
-        preferredDay = preferredDay.toLowerCase();
-        if (preferredDayList[preferredDay]) return preferredDayList[preferredDay];
-        else return 0;
-    }
 }
 
-interface Config {
-    personalInfo: personalInfo;
-    location: location;
-    appSettings: appSettings;
-    webhook: webhook;
-}
-
-interface personalInfo {
-    firstName: string;
-    lastName: string;
-    dob: string;
-    email: string;
-    lastFourSSN: string;
-    phoneNumber?: string;
-    typeId?: number;
-}
-
-interface location {
-    zipCode: string;
-    miles: number;
-    preferredDays: number;
-    sameDay: boolean;
-    daysAround: number;
-}
-
-interface appSettings {
-    cancelIfExist: boolean;
-    interval: number;
-    webserver: boolean;
-    headersTimeout: number;
-}
-
-interface webhook {
-    enable: boolean;
-    url: string;
-    password: string;
-    phoneNumber: string;
-    sendMethod: 'private-api' | 'apple-script';
-    phoneNumberType: 'iMessage' | 'SMS';
-}
 export default TexasScheduler;
