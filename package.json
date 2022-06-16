@@ -34,7 +34,6 @@
     "typescript": "^4.7.3"
   },
   "dependencies": {
-    "axios": "^0.27.2",
     "js-yaml": "^4.1.0",
     "ms": "^2.1.3",
     "p-queue": "6.6.2",
