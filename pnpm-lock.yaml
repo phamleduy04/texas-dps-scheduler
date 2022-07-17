@@ -3,7 +3,7 @@ lockfileVersion: 5.4
 specifiers:
   '@eslint/create-config': ^0.2.0
   '@types/ms': ^0.7.31
-  '@types/node': ^17.0.42
+  '@types/node': ^18.0.5
   '@typescript-eslint/eslint-plugin': ^5.28.0
   '@typescript-eslint/parser': ^5.28.0
   chalk: 4.1.2
@@ -33,14 +33,14 @@ dependencies:
 devDependencies:
   '@eslint/create-config': 0.2.0
   '@types/ms': 0.7.31
-  '@types/node': 17.0.42
+  '@types/node': 18.0.5
   '@typescript-eslint/eslint-plugin': 5.28.0_7yumg2qjgbp7maccqlfhx2vudu
   '@typescript-eslint/parser': 5.28.0_ud6rd4xtew5bv4yhvkvu24pzm4
   eslint: 8.17.0
   eslint-config-prettier: 8.5.0_eslint@8.17.0
   eslint-plugin-prettier: 4.0.0_nguwan5pqsajixjz57ffz7bkde
   prettier: 2.7.0
-  ts-node: 10.8.1_wpmar7q2se7jlmxe5wggegnl2m
+  ts-node: 10.8.1_ac35vvtfjkfcggh3pli6mh345a
   tslib: 2.4.0
   typescript: 4.7.3
 
@@ -162,8 +162,8 @@ packages:
     resolution: {integrity: sha512-iiUgKzV9AuaEkZqkOLDIvlQiL6ltuZd9tGcW3gwpnX8JbuiuhFlEGmmFXEXkN50Cvq7Os88IY2v0dkDqXYWVgA==}
     dev: true
 
-  /@types/node/17.0.42:
-    resolution: {integrity: sha512-Q5BPGyGKcvQgAMbsr7qEGN/kIPN6zZecYYABeTDBizOsau+2NMdSVTar9UQw21A2+JyA2KRNDYaYrPB0Rpk2oQ==}
+  /@types/node/18.0.5:
+    resolution: {integrity: sha512-En7tneq+j0qAiVwysBD79y86MT3ModuoIJbe7JXp+sb5UAjInSShmK3nXXMioBzfF7rXC12hv12d4IyCVwN4dA==}
     dev: true
 
   /@typescript-eslint/eslint-plugin/5.28.0_7yumg2qjgbp7maccqlfhx2vudu:
@@ -1010,7 +1010,7 @@ packages:
       is-number: 7.0.0
     dev: true
 
-  /ts-node/10.8.1_wpmar7q2se7jlmxe5wggegnl2m:
+  /ts-node/10.8.1_ac35vvtfjkfcggh3pli6mh345a:
     resolution: {integrity: sha512-Wwsnao4DQoJsN034wePSg5nZiw4YKXf56mPIAeD6wVmiv+RytNSWqc2f3fKvcUoV+Yn2+yocD71VOfQHbmVX4g==}
     hasBin: true
     peerDependencies:
@@ -1029,7 +1029,7 @@ packages:
       '@tsconfig/node12': 1.0.10
       '@tsconfig/node14': 1.0.2
       '@tsconfig/node16': 1.0.3
-      '@types/node': 17.0.42
+      '@types/node': 18.0.5
       acorn: 8.7.1
       acorn-walk: 8.2.0
       arg: 4.1.3
