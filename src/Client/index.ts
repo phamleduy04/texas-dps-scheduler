@@ -22,6 +22,7 @@ class TexasScheduler {
     private avaliableLocation: AvaliableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
+    public existBooking: any;
     private queue = new pQueue();
 
     public constructor() {
@@ -33,16 +34,11 @@ class TexasScheduler {
     }
 
     public async run() {
-        const existBooking = await this.checkExistBooking();
-        if (existBooking.exist) {
-            log.warn(`You have an existing booking at ${existBooking.response[0].SiteName} ${dayjs(existBooking.response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
-            if (this.config.appSettings.cancelIfExist) {
-                log.info('Canceling existing booking....');
-                await this.cancelBooking(existBooking.response[0].ConfirmationNumber);
-            } else {
-                log.error('You have existing booking, please cancel it first');
-                process.exit(0);
-            }
+        this.existBooking = await this.checkExistBooking();
+        const { exist, response } = this.existBooking;
+        if (exist) {
+            log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
+            log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
         }
         await this.requestAvaliableLocation();
         await this.getLocationDatesAll();
@@ -179,6 +175,10 @@ class TexasScheduler {
     private async bookSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
         if (this.isBooked) return;
         log.info('Booking slot....');
+        if (this.existBooking.exist) {
+            log.info(`Canceling existing booking ${this.existBooking.response[0].ConfirmationNumber}`);
+            await this.cancelBooking(this.existBooking.response[0].ConfirmationNumber);
+        }
         const requestBody: BookSlotPayload = {
             AdaRequired: false,
             BookingDateTime: booking.StartDateTime,
