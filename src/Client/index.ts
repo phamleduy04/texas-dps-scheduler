@@ -22,7 +22,7 @@ class TexasScheduler {
     private avaliableLocation: AvaliableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
-    public existBooking: any;
+    public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
     private queue = new pQueue();
 
     public constructor() {
@@ -175,7 +175,7 @@ class TexasScheduler {
     private async bookSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
         if (this.isBooked) return;
         log.info('Booking slot....');
-        if (this.existBooking.exist) {
+        if (this.existBooking?.exist) {
             log.info(`Canceling existing booking ${this.existBooking.response[0].ConfirmationNumber}`);
             await this.cancelBooking(this.existBooking.response[0].ConfirmationNumber);
         }
