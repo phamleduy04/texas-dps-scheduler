@@ -97,6 +97,13 @@ class TexasScheduler {
         const response: AvaliableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
             .then(res => res.body.json())
             .then(res => res.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles));
+        if (response.length === 0) {
+            log.warn('No avaliable location found! I will increase miles request and try again');
+            this.config.location.miles += 5;
+            log.info(`New miles: ${this.config.location.miles}`);
+            await this.requestAvaliableLocation();
+            return;
+        }
         log.info(`Found ${response.length} avaliable location that match your criteria`);
         log.info(`${response.map(el => el.Name).join(', ')}`);
         this.avaliableLocation = response;
@@ -205,7 +212,7 @@ class TexasScheduler {
             this.isBooked = true;
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             log.info(`Visiting this link to print your booking:`);
-            log.info(`${appointmentURL}`);
+            log.info(appointmentURL);
             if (this.config.webhook.enable)
                 await this.sendWebhook(
                     // this string kinda long so i put it in a array and join it :)
