@@ -6,7 +6,6 @@ import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 
-import type { HttpMethod } from 'undici/types/dispatcher';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Interfaces/AvaliableLocation';
 import type { AvaliableLocationDatesPayload, AvaliableLocationDatesResponse, AvaliableTimeSlots } from '../Interfaces/AvaliableLocationDates';
@@ -144,7 +143,7 @@ class TexasScheduler {
         return Promise.reject();
     }
 
-    private async requestApi(path: string, method: HttpMethod, body: object) {
+    private async requestApi(path: string, method: "GET" | "POST", body: object) {
         const response = await this.requestInstance.request({
             method,
             path,
