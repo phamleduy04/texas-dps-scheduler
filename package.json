@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/phamleduy04/texas-dps-scheduler#readme",
   "devDependencies": {
-    "@eslint/create-config": "^0.3.1",
+    "@eslint/create-config": "^0.4.2",
     "@types/ms": "^0.7.31",
     "@types/node": "^18.7.18",
     "@typescript-eslint/eslint-plugin": "^5.38.0",
