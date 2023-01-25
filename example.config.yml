@@ -24,7 +24,7 @@ location:
   # Put true/false without quotes if you want to book only same day appointment
   sameDay: false
   # Put how many day from today you want to book from start to end (7 is a good number)
-  daysAround: 
+  daysAround:
     start: 0
     end: 7
 
