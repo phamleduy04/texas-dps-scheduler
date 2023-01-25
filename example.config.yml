@@ -23,12 +23,14 @@ location:
   preferredDays: 'Monday'
   # Put true/false without quotes if you want to book only same day appointment
   sameDay: false
-  # Put how many day from today you want to book (7 is a good number)
-  daysAround: 9
+  # Put how many day from today you want to book from start to end (7 is a good number)
+  daysAround: 
+    start: 0
+    end: 7
 
 appSettings:
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
-  cancelIfExist: true
+  cancelIfExist: false
   # The time interval (in ms) the app will recheck for newer dates
   interval: 10000
   # Set this to true if you using replit, heroku or something equivalent
@@ -47,4 +49,4 @@ webhook:
   # private-api or apple-script
   sendMethod: 'apple-script'
   # iMessage or SMS
-  phoneNumberType: ''
+  phoneNumberType: 'SMS'
