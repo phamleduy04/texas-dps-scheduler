@@ -1,10 +1,11 @@
 import undici from 'undici';
-import ms from 'ms';
 import pQueue from 'p-queue';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
+import isBetween from 'dayjs/plugin/isBetween';
+dayjs.extend(isBetween);
 
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Interfaces/AvaliableLocation';
@@ -129,9 +130,14 @@ class TexasScheduler {
             TypeId: this.config.personalInfo.typeId || 71,
         };
         const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
-        const avaliableDates = response.LocationAvailabilityDates.filter(
-            date => new Date(date.AvailabilityDate).valueOf() - new Date().valueOf() < ms(`${this.config.location.daysAround}d`) && date.AvailableTimeSlots.length > 0,
-        );
+        const avaliableDates = response.LocationAvailabilityDates.filter(date => {
+            const AvailabilityDate = dayjs(date.AvailabilityDate);
+            const today = dayjs();
+            return (
+                AvailabilityDate.isBetween(today.subtract(this.config.location.daysAround.start, 'day'), today.add(this.config.location.daysAround.end, 'day'), 'day') &&
+                date.AvailableTimeSlots.length > 0
+            );
+        });
         if (avaliableDates.length !== 0) {
             const booking = avaliableDates[0].AvailableTimeSlots[0];
             log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
@@ -139,11 +145,11 @@ class TexasScheduler {
             this.holdSlot(booking, location);
             return Promise.resolve(true);
         }
-        log.info(`${location.Name} is not avaliable in around ${this.config.location.daysAround} days`);
+        log.info(`${location.Name} is not avaliable in around ${this.config.location.daysAround.start}-${this.config.location.daysAround.end} days from today!`);
         return Promise.reject();
     }
 
-    private async requestApi(path: string, method: "GET" | "POST", body: object) {
+    private async requestApi(path: string, method: 'GET' | 'POST', body: object) {
         const response = await this.requestInstance.request({
             method,
             path,

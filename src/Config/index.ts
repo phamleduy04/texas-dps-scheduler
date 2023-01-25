@@ -1,7 +1,8 @@
 import { readFileSync, existsSync } from 'fs';
 import YAML from 'yaml';
-
+import { configZod, Config } from '../Interfaces/Config';
 import preferredDayList from '../Assets/preferredDay';
+import * as log from '../Log';
 
 const parseConfig = (): Config => {
     if (!existsSync('./config.yml')) {
@@ -13,7 +14,13 @@ const parseConfig = (): Config => {
     const configData = YAML.parse(file);
     configData.location.preferredDays = parsePreferredDays(configData.location.preferredDays);
     configData.personalInfo.phoneNumber = parsePhoneNumber(configData.personalInfo.phoneNumber);
-    return configData;
+    try {
+        return configZod.parse(configData);
+    } catch (e) {
+        log.error('[ERROR] Config file is not valid');
+        console.error(e);
+        process.exit(0);
+    }
 };
 
 export default parseConfig;
@@ -28,45 +35,4 @@ function parsePreferredDays(preferredDay: string): number {
     preferredDay = preferredDay.toLowerCase();
     if (preferredDayList[preferredDay]) return preferredDayList[preferredDay];
     else return 0;
-}
-
-interface Config {
-    personalInfo: personalInfo;
-    location: location;
-    appSettings: appSettings;
-    webhook: webhook;
-}
-
-interface personalInfo {
-    firstName: string;
-    lastName: string;
-    dob: string;
-    email: string;
-    lastFourSSN: string;
-    phoneNumber?: string;
-    typeId?: number;
-}
-
-interface location {
-    zipCode: string;
-    miles: number;
-    preferredDays: number;
-    sameDay: boolean;
-    daysAround: number;
-}
-
-interface appSettings {
-    cancelIfExist: boolean;
-    interval: number;
-    webserver: boolean;
-    headersTimeout: number;
-}
-
-interface webhook {
-    enable: boolean;
-    url: string;
-    password: string;
-    phoneNumber: string;
-    sendMethod: 'private-api' | 'apple-script';
-    phoneNumberType: 'iMessage' | 'SMS';
 }
