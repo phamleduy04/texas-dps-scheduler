@@ -6,6 +6,7 @@ import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 dayjs.extend(isBetween);
+import prompts from 'prompts';
 
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Interfaces/AvaliableLocation';
@@ -96,13 +97,23 @@ class TexasScheduler {
         };
         const response: AvaliableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
             .then(res => res.body.json())
-            .then(res => res.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles));
-        if (response.length === 0) {
-            log.warn('No avaliable location found! I will increase miles request and try again');
-            this.config.location.miles += 5;
-            log.info(`New miles: ${this.config.location.miles}`);
-            await this.requestAvaliableLocation();
+            .then((res: AvaliableLocationResponse[]) => res.sort((a, b) => a.Distance - b.Distance));
+        if (this.config.location.pickDPSLocation) {
+            const userResponse = await prompts({
+                type: 'multiselect',
+                name: 'location',
+                message: 'Choose DPS location, you can choose multiple location!',
+                choices: response.map(el => ({ title: `${el.Name} - ${el.Address} - ${el.Distance} miles away!`, value: el })),
+            });
+            if (!userResponse.location) process.exit(1);
+            this.avaliableLocation = userResponse.location;
+            console.log(this.avaliableLocation);
             return;
+        }
+        const filteredResponse = response.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles);
+        if (filteredResponse.length === 0) {
+            log.error(`No avaliable location found! Nearest location is ${response[0].Distance} miles away! Please change your config and try again!`);
+            process.exit(0);
         }
         log.info(`Found ${response.length} avaliable location that match your criteria`);
         log.info(`${response.map(el => el.Name).join(', ')}`);

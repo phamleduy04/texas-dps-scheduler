@@ -6,7 +6,7 @@ import * as log from '../Log';
 
 const parseConfig = (): Config => {
     if (!existsSync('./config.yml')) {
-        console.error('[ERROR] Not found config.yml file');
+        log.error('Not found config.yml file');
         process.exit(0);
     }
 
@@ -17,9 +17,9 @@ const parseConfig = (): Config => {
     try {
         return configZod.parse(configData);
     } catch (e) {
-        log.error('[ERROR] Config file is not valid');
+        log.error('Config file is not valid');
         console.error(e);
-        process.exit(0);
+        process.exit(1);
     }
 };
 
