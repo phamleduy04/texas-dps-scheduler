@@ -23,7 +23,7 @@ class TexasScheduler {
     private isBooked = false;
     private isHolded = false;
     public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
-    private queue = new pQueue();
+    private queue = new pQueue({ concurrency: 1 });
 
     public constructor() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
