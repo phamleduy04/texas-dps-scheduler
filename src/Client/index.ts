@@ -107,7 +107,6 @@ class TexasScheduler {
             });
             if (!userResponse.location) process.exit(1);
             this.avaliableLocation = userResponse.location;
-            console.log(this.avaliableLocation);
             return;
         }
         const filteredResponse = response.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles);
