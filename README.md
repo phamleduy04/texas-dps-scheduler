@@ -13,7 +13,7 @@ This app will find sameday or nearest 7 day appointments and schedulle it automa
 ![image](https://user-images.githubusercontent.com/32657584/174190104-a22af0a4-61c3-4189-8a9b-692d84f97183.png)
 
 # Update
-- Since 1.4.x application have the `pickDPSLocation` mode. Set it to `true` to choose customize DPS location!
+- Since 1.4.x application have the `pickDPSLocation` mode. Set it to `true` to customize DPS location selection!
 
 ![image](https://user-images.githubusercontent.com/32657584/214761257-8f0db093-d88b-4fc8-9356-cdecb8d6c29a.png)
 
