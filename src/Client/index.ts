@@ -105,7 +105,10 @@ class TexasScheduler {
                 message: 'Choose DPS location, you can choose multiple location!',
                 choices: response.map(el => ({ title: `${el.Name} - ${el.Address} - ${el.Distance} miles away!`, value: el })),
             });
-            if (!userResponse.location) process.exit(1);
+            if (!userResponse.location || userResponse.location.length === 0) {
+                log.error('You must choose at least one location!');
+                process.exit(1);
+            }
             this.avaliableLocation = userResponse.location;
             return;
         }
@@ -152,6 +155,10 @@ class TexasScheduler {
             const booking = avaliableDates[0].AvailableTimeSlots[0];
             log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
             if (!this.queue.isPaused) this.queue.pause();
+            if (!this.config.appSettings.cancelIfExist) {
+                log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');
+                process.exit(0);
+            }
             this.holdSlot(booking, location);
             return Promise.resolve(true);
         }
