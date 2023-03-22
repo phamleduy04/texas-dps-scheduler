@@ -26,6 +26,7 @@ const configZod = z.object({
         interval: z.number().default(10000),
         webserver: z.boolean().default(false),
         headersTimeout: z.number().default(20000),
+        maxRetry: z.number().default(3),
     }),
     webhook: z.object({
         enable: z.boolean().default(false),

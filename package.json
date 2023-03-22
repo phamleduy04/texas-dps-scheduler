@@ -1,6 +1,6 @@
 {
   "name": "texas-dps-scheduler",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "Texas DPS Automatic Scheduler",
   "main": "dist/index.js",
   "scripts": {

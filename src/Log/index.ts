@@ -13,7 +13,7 @@ const timeNow = () => dayjs().format('MM/DD/YYYY h:mm:ss');
 const msg = (func: any, message: string) => func(`${yellow(`[${timeNow()}]`)} ${green(message)}`);
 
 const error = (message = 'Unknown error', err?: Error) => {
-    console.error(`${yellow(timeNow())} [ERROR]: ${red(message)}`);
+    console.error(`[${yellow(timeNow())}] ERROR: ${red(message)}`);
     if (err) console.error(err);
 };
 

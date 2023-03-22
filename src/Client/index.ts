@@ -1,4 +1,4 @@
-import undici from 'undici';
+import undici, { Dispatcher } from 'undici';
 import pQueue from 'p-queue';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
@@ -7,7 +7,6 @@ import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 dayjs.extend(isBetween);
 import prompts from 'prompts';
-
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvaliableLocationPayload, AvaliableLocationResponse } from '../Interfaces/AvaliableLocation';
 import type { AvaliableLocationDatesPayload, AvaliableLocationDatesResponse, AvaliableTimeSlots } from '../Interfaces/AvaliableLocationDates';
@@ -15,8 +14,10 @@ import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
 import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
-import type { webhookPayload } from '../Interfaces/webhook';
+import type { webhookPayload } from '../Interfaces/Webhook';
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packagejson = require('../../package.json');
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
     public config = parseConfig();
@@ -29,7 +30,7 @@ class TexasScheduler {
     public constructor() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
         if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
-        log.info('Texas Scheduler is starting...');
+        log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Avaliable Location....');
         this.run();
     }
@@ -59,7 +60,7 @@ class TexasScheduler {
         return { exist: false, response };
     }
 
-    private async cancelBooking(ConfirmationNumber: string) {
+    private async cancelBooking(ConfirmationNumber: string, retryTime = 0) {
         const requestBody: CancelBookingPayload = {
             ConfirmationNumber,
             DateOfBirth: this.config.personalInfo.dob,
@@ -67,12 +68,8 @@ class TexasScheduler {
             FirstName: this.config.personalInfo.firstName,
             LastName: this.config.personalInfo.lastName,
         };
-        const response = await this.requestApi('/api/CancelBooking', 'POST', requestBody);
-        if (response.statusCode === 200) log.info('Canceled booking successfully');
-        else {
-            log.error('Failed to cancel booking. Please cancel it manually');
-            process.exit(0);
-        }
+        await this.requestApi('/api/CancelBooking', 'POST', requestBody);
+        log.info('Canceled booking successfully');
     }
 
     public async getResponseId() {
@@ -135,22 +132,26 @@ class TexasScheduler {
     }
 
     private async getLocationDates(location: AvaliableLocationResponse) {
+        const locationConfig = this.config.location;
         const requestBody: AvaliableLocationDatesPayload = {
             LocationId: location.Id,
-            PreferredDay: this.config.location.preferredDays,
-            SameDay: this.config.location.sameDay,
+            PreferredDay: locationConfig.preferredDays,
+            SameDay: locationConfig.sameDay,
             StartDate: null,
             TypeId: this.config.personalInfo.typeId || 71,
         };
         const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
-        const avaliableDates = response.LocationAvailabilityDates.filter(date => {
-            const AvailabilityDate = dayjs(date.AvailabilityDate);
-            const today = dayjs();
-            return (
-                AvailabilityDate.isBetween(today.subtract(this.config.location.daysAround.start, 'day'), today.add(this.config.location.daysAround.end, 'day'), 'day') &&
-                date.AvailableTimeSlots.length > 0
-            );
-        });
+        let avaliableDates = response.LocationAvailabilityDates;
+        if (!locationConfig.sameDay) {
+            avaliableDates = response.LocationAvailabilityDates.filter(date => {
+                const AvailabilityDate = dayjs(date.AvailabilityDate);
+                const today = dayjs();
+                return (
+                    AvailabilityDate.isBetween(today.add(locationConfig.daysAround.start, 'day'), today.add(locationConfig.daysAround.end, 'day'), 'day') &&
+                    date.AvailableTimeSlots.length > 0
+                );
+            });
+        }
         if (avaliableDates.length !== 0) {
             const booking = avaliableDates[0].AvailableTimeSlots[0];
             log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
@@ -162,11 +163,16 @@ class TexasScheduler {
             this.holdSlot(booking, location);
             return Promise.resolve(true);
         }
-        log.info(`${location.Name} is not avaliable in around ${this.config.location.daysAround.start}-${this.config.location.daysAround.end} days from today!`);
+        log.info(
+            `${location.Name} is not avaliable in ${
+                locationConfig.sameDay ? 'the same day' : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from today! `
+            } `,
+        );
+
         return Promise.reject();
     }
 
-    private async requestApi(path: string, method: 'GET' | 'POST', body: object) {
+    private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<Dispatcher.ResponseData> {
         const response = await this.requestInstance.request({
             method,
             path,
@@ -178,7 +184,15 @@ class TexasScheduler {
             headersTimeout: this.config.appSettings.headersTimeout,
             body: JSON.stringify(body),
         });
-        return await response;
+        if (response.statusCode !== 200) {
+            if (retryTime < this.config.appSettings.maxRetry) {
+                log.warn(`Got ${response.statusCode} status code, retrying...`);
+                return this.requestApi(path, method, body, retryTime + 1);
+            }
+            log.error(`Got ${response.statusCode} status code, retrying failed!`);
+            process.exit(1);
+        }
+        return response;
     }
 
     private async holdSlot(booking: AvaliableTimeSlots, location: AvaliableLocationResponse) {
