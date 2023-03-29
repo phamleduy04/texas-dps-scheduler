@@ -16,15 +16,18 @@ import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/Ex
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
 import type { webhookPayload } from '../Interfaces/Webhook';
 
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const packagejson = require('../../package.json');
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
     public config = parseConfig();
+    public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
+
     private avaliableLocation: AvaliableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
-    public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
     private queue = new pQueue({ concurrency: 1 });
 
     public constructor() {
@@ -32,6 +35,7 @@ class TexasScheduler {
         if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Avaliable Location....');
+        if (!existsSync('cache')) mkdirSync('cache');
         this.run();
     }
 
@@ -60,7 +64,7 @@ class TexasScheduler {
         return { exist: false, response };
     }
 
-    private async cancelBooking(ConfirmationNumber: string, retryTime = 0) {
+    private async cancelBooking(ConfirmationNumber: string) {
         const requestBody: CancelBookingPayload = {
             ConfirmationNumber,
             DateOfBirth: this.config.personalInfo.dob,
@@ -87,7 +91,7 @@ class TexasScheduler {
     public async requestAvaliableLocation(): Promise<void> {
         const requestBody: AvaliableLocationPayload = {
             CityName: '',
-            PreferredDay: this.config.location.preferredDays,
+            PreferredDay: 0,
             // 71 is new driver license
             TypeId: this.config.personalInfo.typeId || 71,
             ZipCode: this.config.location.zipCode,
@@ -96,6 +100,12 @@ class TexasScheduler {
             .then(res => res.body.json())
             .then((res: AvaliableLocationResponse[]) => res.sort((a, b) => a.Distance - b.Distance));
         if (this.config.location.pickDPSLocation) {
+            if (existsSync('././cache/location.json')) {
+                this.avaliableLocation = JSON.parse(readFileSync('././cache/location.json', 'utf-8'));
+                log.info('Found cached location selection, using cached location selection');
+                log.info('If you want to change location selection, please delete cache folder!');
+                return;
+            }
             const userResponse = await prompts({
                 type: 'multiselect',
                 name: 'location',
@@ -107,6 +117,7 @@ class TexasScheduler {
                 process.exit(1);
             }
             this.avaliableLocation = userResponse.location;
+            writeFileSync('././cache/location.json', JSON.stringify(userResponse.location));
             return;
         }
         const filteredResponse = response.filter((location: AvaliableLocationResponse) => location.Distance < this.config.location.miles);
@@ -135,23 +146,28 @@ class TexasScheduler {
         const locationConfig = this.config.location;
         const requestBody: AvaliableLocationDatesPayload = {
             LocationId: location.Id,
-            PreferredDay: locationConfig.preferredDays,
+            PreferredDay: 0,
             SameDay: locationConfig.sameDay,
             StartDate: null,
             TypeId: this.config.personalInfo.typeId || 71,
         };
         const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
         let avaliableDates = response.LocationAvailabilityDates;
+
         if (!locationConfig.sameDay) {
             avaliableDates = response.LocationAvailabilityDates.filter(date => {
                 const AvailabilityDate = dayjs(date.AvailabilityDate);
                 const today = dayjs();
+                let preferredDaysCondition = true;
+                if (locationConfig.preferredDays.length > 0) preferredDaysCondition = locationConfig.preferredDays.includes(AvailabilityDate.day());
                 return (
                     AvailabilityDate.isBetween(today.add(locationConfig.daysAround.start, 'day'), today.add(locationConfig.daysAround.end, 'day'), 'day') &&
-                    date.AvailableTimeSlots.length > 0
+                    date.AvailableTimeSlots.length > 0 &&
+                    preferredDaysCondition
                 );
             });
         }
+
         if (avaliableDates.length !== 0) {
             const booking = avaliableDates[0].AvailableTimeSlots[0];
             log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
@@ -163,6 +179,7 @@ class TexasScheduler {
             this.holdSlot(booking, location);
             return Promise.resolve(true);
         }
+        
         log.info(
             `${location.Name} is not avaliable in ${
                 locationConfig.sameDay ? 'the same day' : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from today! `
