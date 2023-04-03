@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 const configZod = z.object({
     personalInfo: z.object({
+        loadFromEnv: z.boolean().default(false),
         firstName: z.string(),
         lastName: z.string(),
         dob: z.string(),

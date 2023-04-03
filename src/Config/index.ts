@@ -3,6 +3,7 @@ import YAML from 'yaml';
 import { configZod, Config } from '../Interfaces/Config';
 import preferredDayList from '../Assets/preferredDay';
 import * as log from '../Log';
+import 'dotenv/config';
 
 const parseConfig = (): Config => {
     if (!existsSync('./config.yml')) {
@@ -11,9 +12,11 @@ const parseConfig = (): Config => {
     }
 
     const file = readFileSync('././config.yml', 'utf8');
-    const configData = YAML.parse(file);
+    let configData = YAML.parse(file);
+    configData = parsePersonalInfo(configData);
     configData.location.preferredDays = parsePreferredDays(configData.location.preferredDays);
     configData.personalInfo.phoneNumber = parsePhoneNumber(configData.personalInfo.phoneNumber);
+
     try {
         return configZod.parse(configData);
     } catch (e) {
@@ -34,4 +37,21 @@ function parsePhoneNumber(phoneNumber: string) {
 function parsePreferredDays(preferredDay: string[]): number[] {
     const convertedPreferredDay = preferredDay.map(day => preferredDayList[day.toLowerCase()]).filter(e => e);
     return convertedPreferredDay;
+}
+
+function parsePersonalInfo(configData: Config) {
+    if (!configData.personalInfo.loadFromEnv) return configData;
+    log.info('Loading personal info from environment variables.');
+    const { FIRSTNAME, LASTNAME, DOB, EMAIL, LASTFOURSSN, PHONENUMBER } = process.env;
+    if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN) {
+        log.error('Missing environment variables for personal info. Please refer to example.env file.');
+        process.exit(1);
+    }
+    configData.personalInfo.firstName = FIRSTNAME;
+    configData.personalInfo.lastName = LASTNAME;
+    configData.personalInfo.dob = DOB;
+    configData.personalInfo.email = EMAIL;
+    configData.personalInfo.lastFourSSN = LASTFOURSSN;
+    configData.personalInfo.phoneNumber = PHONENUMBER;
+    return configData;
 }

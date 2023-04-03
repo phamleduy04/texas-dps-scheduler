@@ -1,4 +1,10 @@
 personalInfo:
+  # Load from environment secret to prevent personal info leaking
+  # If you are using replit free plan, set this true
+  # Then add your info to the secrets section
+  loadFromEnv: false
+
+  # if loadFromEnv is true, anything in personalInfo beside typeId is ignored
   firstName: 'John'
   lastName: 'Doe'
   # Date of birth (MM/DD/YYYY)
@@ -10,6 +16,7 @@ personalInfo:
   # If you want to recieve notificaion through phone, if not keep blank
   # WARNING: Use number only (Ex: 111111111)
   phoneNumber: ''
+
   # Serivce you needed at DPS. Check the full list on https://github.com/phamleduy04/texas-dps-scheduler/wiki/TypeId-list
   # If you need to apply for Texas DL you don't need to change it
   typeId: 71
