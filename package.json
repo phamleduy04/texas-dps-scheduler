@@ -22,7 +22,7 @@
   "devDependencies": {
     "@eslint/create-config": "^0.4.2",
     "@types/ms": "^0.7.31",
-    "@types/node": "^18.15.11",
+    "@types/node": "^20.1.1",
     "@types/prompts": "^2.4.4",
     "@typescript-eslint/eslint-plugin": "^5.57.1",
     "@typescript-eslint/parser": "^5.57.1",
