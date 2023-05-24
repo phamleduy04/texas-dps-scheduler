@@ -172,14 +172,13 @@ class TexasScheduler {
             const booking = avaliableDates[0].AvailableTimeSlots[0];
             log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
             if (!this.queue.isPaused) this.queue.pause();
-            if (!this.config.appSettings.cancelIfExist) {
+            if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
                 log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');
                 process.exit(0);
             }
             this.holdSlot(booking, location);
             return Promise.resolve(true);
         }
-        
         log.info(
             `${location.Name} is not avaliable in ${
                 locationConfig.sameDay ? 'the same day' : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from today! `
