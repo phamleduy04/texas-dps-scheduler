@@ -125,9 +125,9 @@ class TexasScheduler {
             log.error(`No avaliable location found! Nearest location is ${response[0].Distance} miles away! Please change your config and try again!`);
             process.exit(0);
         }
-        log.info(`Found ${response.length} avaliable location that match your criteria`);
-        log.info(`${response.map(el => el.Name).join(', ')}`);
-        this.avaliableLocation = response;
+        log.info(`Found ${filteredResponse.length} avaliable location that match your criteria`);
+        log.info(`${filteredResponse.map(el => el.Name).join(', ')}`);
+        this.avaliableLocation = filteredResponse;
         return;
     }
 
