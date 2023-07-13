@@ -58,7 +58,9 @@ class TexasScheduler {
             LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
         };
 
-        const response: ExistBookingResponse[] = await this.requestApi('/api/Booking', 'POST', requestBody).then(res => res.body.json());
+        const response: ExistBookingResponse[] = await this.requestApi('/api/Booking', 'POST', requestBody)
+            .then(res => res.body.json())
+            .then((res: ExistBookingResponse[]) => res.filter((booking: ExistBookingResponse) => booking.ServiceTypeId == this.config.personalInfo.typeId));
         // if no booking found, the api will return empty array
         if (response.length > 0) return { exist: true, response };
         return { exist: false, response };

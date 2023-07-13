@@ -10,4 +10,5 @@ export interface ExistBookingResponse {
     ConfirmationNumber: string;
     BookingDateTime: string;
     SiteName: string;
+    ServiceTypeId: number;
 }
