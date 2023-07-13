@@ -1,6 +1,6 @@
 {
   "name": "texas-dps-scheduler",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "Texas DPS Automatic Scheduler",
   "main": "dist/index.js",
   "scripts": {
@@ -22,13 +22,13 @@
   "devDependencies": {
     "@eslint/create-config": "^0.4.5",
     "@types/ms": "^0.7.31",
-    "@types/node": "^20.4.1",
+    "@types/node": "^20.4.2",
     "@types/prompts": "^2.4.4",
-    "@typescript-eslint/eslint-plugin": "^5.61.0",
-    "@typescript-eslint/parser": "^5.61.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.44.0",
     "eslint-config-prettier": "^8.8.0",
-    "eslint-plugin-prettier": "^4.2.1",
+    "eslint-plugin-prettier": "^5.0.0",
     "prettier": "^3.0.0",
     "ts-node": "^10.9.1",
     "tslib": "^2.6.0",
