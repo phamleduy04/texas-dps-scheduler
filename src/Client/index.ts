@@ -262,6 +262,13 @@ class TexasScheduler {
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
         if (response.statusCode === 200) {
             const bookingInfo: BookSlotResponse = await response.body.json();
+            if (bookingInfo?.Booking === null) {
+                if (this.queue.isPaused) this.queue.start();
+                log.error('Failed to book slot');
+                log.error(JSON.stringify(bookingInfo));
+                this.isHolded = false;
+                return;
+            }
             const appointmentURL = `https://public.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
             this.isBooked = true;
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
