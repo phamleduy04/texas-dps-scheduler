@@ -224,7 +224,7 @@ class TexasScheduler {
         };
         const response: HoldSlotResponse = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json());
         if (response.SlotHeldSuccessfully !== true) {
-            log.error('Failed to hold slot');
+            log.error(`Failed to hold slot: ${response.ErrorMessage}`);
             if (this.queue.isPaused) this.queue.start();
             return;
         }
