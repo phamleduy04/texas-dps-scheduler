@@ -4,7 +4,7 @@
         "module": "commonjs",
         "rootDir": "./src/",
         "outDir": "./dist/",
-        "strict": true,
+        "strict": false,
         "moduleResolution": "node",
         "importHelpers": true,
         "experimentalDecorators": true,

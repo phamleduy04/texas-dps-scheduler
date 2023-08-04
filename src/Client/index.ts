@@ -153,7 +153,7 @@ class TexasScheduler {
             StartDate: null,
             TypeId: this.config.personalInfo.typeId || 71,
         };
-        const response: AvaliableLocationDatesResponse = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json());
+        const response = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json()) as AvaliableLocationDatesResponse;
         let avaliableDates = response.LocationAvailabilityDates;
 
         if (!locationConfig.sameDay) {
@@ -222,7 +222,7 @@ class TexasScheduler {
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             SlotId: booking.SlotId,
         };
-        const response: HoldSlotResponse = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json());
+        const response = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json()) as HoldSlotResponse;
         if (response.SlotHeldSuccessfully !== true) {
             log.error(`Failed to hold slot: ${response.ErrorMessage}`);
             if (this.queue.isPaused) this.queue.start();
@@ -261,7 +261,7 @@ class TexasScheduler {
 
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
         if (response.statusCode === 200) {
-            const bookingInfo: BookSlotResponse = await response.body.json();
+            const bookingInfo = await response.body.json() as BookSlotResponse;
             if (bookingInfo?.Booking === null) {
                 if (this.queue.isPaused) this.queue.start();
                 log.error('Failed to book slot');
