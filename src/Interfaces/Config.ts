@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+const checkStartLowerThanEnd = data => data.start < data.end;
+
 const configZod = z.object({
     personalInfo: z.object({
         loadFromEnv: z.boolean().default(false),
@@ -17,10 +19,18 @@ const configZod = z.object({
         miles: z.number(),
         preferredDays: z.number().array(),
         sameDay: z.boolean(),
-        daysAround: z.object({
-            start: z.number(),
-            end: z.number(),
-        }),
+        daysAround: z
+            .object({
+                start: z.number(),
+                end: z.number(),
+            })
+            .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
+        timesAround: z
+            .object({
+                start: z.number(),
+                end: z.number(),
+            })
+            .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
     }),
     appSettings: z.object({
         cancelIfExist: z.boolean().default(false),

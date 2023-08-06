@@ -153,7 +153,7 @@ class TexasScheduler {
             StartDate: null,
             TypeId: this.config.personalInfo.typeId || 71,
         };
-        const response = await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json()) as AvaliableLocationDatesResponse;
+        const response = (await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json())) as AvaliableLocationDatesResponse;
         let avaliableDates = response.LocationAvailabilityDates;
 
         if (!locationConfig.sameDay) {
@@ -171,7 +171,22 @@ class TexasScheduler {
         }
 
         if (avaliableDates.length !== 0) {
-            const booking = avaliableDates[0].AvailableTimeSlots[0];
+            const filteredAvailabilityDates = avaliableDates
+                .map(date => {
+                    const filteredTimeSlots = date.AvailableTimeSlots.filter(timeSlot => {
+                        const startDateTime = dayjs(timeSlot.StartDateTime);
+                        const startHour = startDateTime.hour();
+                        return startHour >= this.config.location.timesAround.start && startHour < this.config.location.timesAround.end;
+                    });
+                    return {
+                        ...date,
+                        AvailableTimeSlots: filteredTimeSlots,
+                    };
+                })
+                .filter(date => date.AvailableTimeSlots.length > 0);
+
+            const booking = filteredAvailabilityDates[0].AvailableTimeSlots[0];
+
             log.info(`${location.Name} is avaliable on ${booking.FormattedStartDateTime}`);
             if (!this.queue.isPaused) this.queue.pause();
             if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
@@ -222,7 +237,7 @@ class TexasScheduler {
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             SlotId: booking.SlotId,
         };
-        const response = await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json()) as HoldSlotResponse;
+        const response = (await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json())) as HoldSlotResponse;
         if (response.SlotHeldSuccessfully !== true) {
             log.error(`Failed to hold slot: ${response.ErrorMessage}`);
             if (this.queue.isPaused) this.queue.start();
@@ -261,7 +276,7 @@ class TexasScheduler {
 
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
         if (response.statusCode === 200) {
-            const bookingInfo = await response.body.json() as BookSlotResponse;
+            const bookingInfo = (await response.body.json()) as BookSlotResponse;
             if (bookingInfo?.Booking === null) {
                 if (this.queue.isPaused) this.queue.start();
                 log.error('Failed to book slot');
