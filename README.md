@@ -12,8 +12,8 @@ This app will find sameday or nearest 7 day appointments and schedulle it automa
 
 ![image](https://user-images.githubusercontent.com/32657584/174190104-a22af0a4-61c3-4189-8a9b-692d84f97183.png)
 
-# Update
-- If your using the app on older version than v1.6.0 with repl.it free plan, you might have your personal infomation viewed publicly on repl.it. See how to handle this [here](https://github.com/phamleduy04/texas-dps-scheduler/issues/34#issuecomment-1497574243)
+# Youtube Tutorial
+- Link [here](https://youtu.be/JT769XpTYJk)
 
 # Why this project exist?
 It's so frustrating to get appointments and walk ins so I created this project to gain easier access to DPS and get DL.
