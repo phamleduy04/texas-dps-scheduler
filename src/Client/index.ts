@@ -19,7 +19,16 @@ import type { webhookPayload } from '../Interfaces/Webhook';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const packagejson = require('../../package.json');
+let packagejson;
+try {
+    packagejson = require('../../package.json');
+} catch {
+    try {
+        packagejson = require('../package.json');
+    } catch {
+        packagejson.version = null;
+    }
+}
 class TexasScheduler {
     public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
     public config = parseConfig();
