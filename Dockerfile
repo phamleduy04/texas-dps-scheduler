@@ -17,5 +17,4 @@ RUN yarn install --production
 FROM node:slim
 WORKDIR /home/container
 COPY --from=ts-remover /home/container ./
-USER 1000
 CMD ["node", "index.js"]

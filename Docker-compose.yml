@@ -1,8 +1,8 @@
 version: '3.6'
 
 services:
-  dps-scheduler: 
+  dps-scheduler:
     image: ghcr.io/phamleduy04/texas-dps-scheduler:latest
     container_name: texas-dps-scheduler
     volumes:
-      - ./config.yml:/config.yml
+      - ./config.yml:/home/container/config.yml
