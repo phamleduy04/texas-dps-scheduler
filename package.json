@@ -1,6 +1,6 @@
 {
   "name": "texas-dps-scheduler",
-  "version": "1.6.8",
+  "version": "1.6.9",
   "description": "Texas DPS Automatic Scheduler",
   "main": "dist/index.js",
   "scripts": {
@@ -44,5 +44,8 @@
     "undici": "^5.27.2",
     "yaml": "^2.3.4",
     "zod": "^3.22.4"
+  },
+  "engines": {
+    "node": "16.x"
   }
 }
