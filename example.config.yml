@@ -22,8 +22,8 @@ personalInfo:
   typeId: 71
 
 location:
-  # Zipcode of your location
-  zipCode: '75067'
+  # Zipcode of your location can add more by using ','
+  zipCode: ['75067', '75080']
   # Choose your DPS location by yourself when running the application if set to true
   pickDPSLocation: false
   # Get appointment from all DPS location by distance from the zipcode, will auto skip this when pickDPSLocation is true

@@ -13,4 +13,5 @@ export interface AvaliableLocationResponse {
     Distance: number;
     Name: string;
     NextAvailableDate: string;
+    ZipCode: string;
 }
