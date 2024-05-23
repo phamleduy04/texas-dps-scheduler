@@ -178,11 +178,11 @@ class TexasScheduler {
         if (!locationConfig.sameDay) {
             AvailableDates = response.LocationAvailabilityDates.filter(date => {
                 const AvailabilityDate = dayjs(date.AvailabilityDate);
-                const today = dayjs();
+                const startDate = dayjs(this.config.location.daysAround.startDate);
                 let preferredDaysCondition = true;
                 if (locationConfig.preferredDays.length > 0) preferredDaysCondition = locationConfig.preferredDays.includes(AvailabilityDate.day());
                 return (
-                    AvailabilityDate.isBetween(today.add(locationConfig.daysAround.start, 'day'), today.add(locationConfig.daysAround.end, 'day'), 'day') &&
+                    AvailabilityDate.isBetween(startDate.add(locationConfig.daysAround.start, 'day'), startDate.add(locationConfig.daysAround.end, 'day'), 'day') &&
                     date.AvailableTimeSlots.length > 0 &&
                     preferredDaysCondition
                 );

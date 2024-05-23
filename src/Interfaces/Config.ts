@@ -21,6 +21,7 @@ const configZod = z.object({
         sameDay: z.boolean(),
         daysAround: z
             .object({
+                startDate: z.string(),
                 start: z.number(),
                 end: z.number(),
             })
