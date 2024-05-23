@@ -309,43 +309,10 @@ class TexasScheduler {
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             log.info(`Visiting this link to print your booking:`);
             log.info(appointmentURL);
-            if (this.config.webhook.enable)
-                await this.sendWebhook(
-                    // this string kinda long so i put it in a array and join it :)
-                    [
-                        `Booking for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName} has been booked.`,
-                        `Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`,
-                        `Location: ${location.Name} DPS`,
-                        `Time: ${booking.FormattedStartDateTime}`,
-                        `Appointment URL: ${appointmentURL}`,
-                    ].join('\n'),
-                );
             process.exit(0);
         } else {
             if (this.queue.isPaused) this.queue.start();
             log.error('Failed to book slot');
-            log.error(await response.body.text());
-        }
-    }
-
-    private async sendWebhook(message: string) {
-        const requestBody: webhookPayload = {
-            chatGuid: `${this.config.webhook.phoneNumberType};-;${this.config.webhook.phoneNumber}`,
-            tempGuild: '',
-            message,
-            method: this.config.webhook.sendMethod,
-            subject: '',
-            effectId: '',
-            selectedMessageGuild: '',
-        };
-        const response = await undici.request(`${this.config.webhook.url}/api/v1/message/text?password=${this.config.webhook.password}`, {
-            method: 'POST',
-            body: JSON.stringify(requestBody),
-            headers: { 'Content-Type': 'application/json' },
-        });
-        if (response.statusCode === 200) log.info('[INFO] Webhook sent successfully');
-        else {
-            log.error('Failed to send webhook');
             log.error(await response.body.text());
         }
     }

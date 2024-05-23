@@ -39,14 +39,6 @@ const configZod = z.object({
         headersTimeout: z.number().default(20000),
         maxRetry: z.number().default(3),
     }),
-    webhook: z.object({
-        enable: z.boolean().default(false),
-        url: z.string().nullable(),
-        password: z.string().nullable(),
-        phoneNumber: z.string().nullable(),
-        sendMethod: z.union([z.literal('private-api'), z.literal('apple-script')]).default('apple-script'),
-        phoneNumberType: z.union([z.literal('iMessage'), z.literal('SMS')]).nullable(),
-    }),
 });
 
 type Config = z.infer<typeof configZod>;

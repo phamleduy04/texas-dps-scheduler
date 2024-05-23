@@ -54,16 +54,3 @@ appSettings:
   headersTimeout: 20000 
   # How many times to retry if the request to DPS server failled
   maxRetry: 3
-
-# If you dont know what to change here, dont change it :)
-webhook:
-  # If your using Bluebubbles webhook/api put this to true otherwise, keep it false
-  enable: false
-  url: ''
-  password: ''
-  # phone number with country code (EX: +11111111111)
-  phoneNumber: ''
-  # private-api or apple-script
-  sendMethod: 'apple-script'
-  # iMessage or SMS
-  phoneNumberType: 'SMS'
