@@ -4,6 +4,7 @@ import { configZod, Config } from '../Interfaces/Config';
 import preferredDayList from '../Assets/preferredDay';
 import * as log from '../Log';
 import 'dotenv/config';
+import dayjs from 'dayjs';
 
 const parseConfig = (): Config => {
     if (!existsSync('./config.yml')) {
@@ -16,6 +17,12 @@ const parseConfig = (): Config => {
     configData = parsePersonalInfo(configData);
     configData.location.preferredDays = parsePreferredDays(configData.location.preferredDays);
     configData.personalInfo.phoneNumber = parsePhoneNumber(configData.personalInfo.phoneNumber);
+    let startDate = dayjs(configData.location.daysAround.startDate);
+    if (!configData.location.daysAround.startDate || !startDate.isValid() || startDate.isBefore(dayjs())) {
+        log.warn('Invalid date in config.yml, using current date');
+        startDate = dayjs();
+    }
+    configData.location.daysAround.startDate = startDate.format('MM/DD/YYYY');
 
     try {
         return configZod.parse(configData);

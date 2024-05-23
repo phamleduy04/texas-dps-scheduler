@@ -1,6 +1,6 @@
-// This type request to AvaliableLocationDates endpoints and check avaliable dates on specific location
+// This type request to AvailableLocationDates endpoints and check available dates on specific location
 
-export interface AvaliableLocationDatesPayload {
+export interface AvailableLocationDatesPayload {
     LocationId: number;
     PreferredDay: number;
     SameDay: boolean;
@@ -8,7 +8,7 @@ export interface AvaliableLocationDatesPayload {
     TypeId: number;
 }
 
-export interface AvaliableLocationDatesResponse {
+export interface AvailableLocationDatesResponse {
     MoreDatesAvailable: boolean;
     FirstAvailableDate: Date;
     LocationAvailabilityDates: LocationAvailabilityDates[];
@@ -18,10 +18,10 @@ interface LocationAvailabilityDates {
     LocationId: number;
     ServiceTypeId: number;
     AvailabilityDate: string;
-    AvailableTimeSlots: AvaliableTimeSlots[];
+    AvailableTimeSlots: AvailableTimeSlots[];
 }
 
-export interface AvaliableTimeSlots {
+export interface AvailableTimeSlots {
     FormattedStartDateTime: string;
     SlotId: number;
     Duration: number;

@@ -22,7 +22,7 @@ personalInfo:
   typeId: 71
 
 location:
-  # Zipcode of your location can add more by using ','
+  # Zipcode of your location. Can add more DPS location by using ',' for multiple zipcode
   zipCode: ['75067', '75080']
   # Choose your DPS location by yourself when running the application if set to true
   pickDPSLocation: false
@@ -35,6 +35,10 @@ location:
   sameDay: false
   # Put how many day from today you want to book from start to end (7 is a good number)
   daysAround:
+    ## Start date: start and end will start counting from this date
+    # MM/DD/YYYY format, if blank will use current date
+    # If the date input is invalid or in the past, the app will automatically use the current date as start date
+    startDate: null
     start: 0
     end: 7
   # Put what time you want to book
@@ -54,16 +58,3 @@ appSettings:
   headersTimeout: 20000 
   # How many times to retry if the request to DPS server failled
   maxRetry: 3
-
-# If you dont know what to change here, dont change it :)
-webhook:
-  # If your using Bluebubbles webhook/api put this to true otherwise, keep it false
-  enable: false
-  url: ''
-  password: ''
-  # phone number with country code (EX: +11111111111)
-  phoneNumber: ''
-  # private-api or apple-script
-  sendMethod: 'apple-script'
-  # iMessage or SMS
-  phoneNumberType: 'SMS'
