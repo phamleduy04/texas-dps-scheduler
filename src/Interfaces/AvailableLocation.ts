@@ -1,5 +1,5 @@
-// This type request to AvaliableLocation endpoints and check avaliable locations
-export interface AvaliableLocationPayload {
+// This type request to AvailableLocation endpoints and check available locations
+export interface AvailableLocationPayload {
     CityName: string;
     PreferredDay: number;
     TypeId: number;
@@ -7,7 +7,7 @@ export interface AvaliableLocationPayload {
 }
 
 // The response is more than this but i only use stuff I needed
-export interface AvaliableLocationResponse {
+export interface AvailableLocationResponse {
     Id: number;
     Address: string;
     Distance: number;
