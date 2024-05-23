@@ -76,14 +76,12 @@ class TexasScheduler {
     }
 
     private async cancelBooking(ConfirmationNumber: string) {
-        const { response } = this.existBooking;
-        const { DateOfBirth, FirstName, LastName, Last4Ssn } = response[0];
         const requestBody: CancelBookingPayload = {
             ConfirmationNumber,
-            DateOfBirth,
-            LastFourDigitsSsn: Last4Ssn,
-            FirstName,
-            LastName,
+            DateOfBirth: this.config.personalInfo.dob,
+            LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
+            FirstName: this.config.personalInfo.firstName,
+            LastName: this.config.personalInfo.lastName,
         };
         await this.requestApi('/api/CancelBooking', 'POST', requestBody);
         log.info('Canceled booking successfully');
