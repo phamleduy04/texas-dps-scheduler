@@ -18,7 +18,7 @@ const parseConfig = (): Config => {
     configData.location.preferredDays = parsePreferredDays(configData.location.preferredDays);
     configData.personalInfo.phoneNumber = parsePhoneNumber(configData.personalInfo.phoneNumber);
     let startDate = dayjs(configData.location.daysAround.startDate);
-    if (!startDate.isValid() || startDate.isBefore(dayjs())) {
+    if (!configData.location.daysAround.startDate || !startDate.isValid() || startDate.isBefore(dayjs())) {
         log.warn('Invalid date in config.yml, using current date');
         startDate = dayjs();
     }
