@@ -2,7 +2,7 @@ personalInfo:
   # Load from environment secret to prevent personal info leaking
   # If you are using replit free plan, set this true
   # Then add your info to the secrets section
-  loadFromEnv: false
+  loadFromEnv: true
 
   # if loadFromEnv is true, anything in personalInfo beside typeId is ignored
   firstName: 'John'
@@ -19,11 +19,11 @@ personalInfo:
 
   # Serivce you needed at DPS. Check the full list on https://github.com/phamleduy04/texas-dps-scheduler/wiki/TypeId-list
   # If you need to apply for Texas DL you don't need to change it
-  typeId: 71
+  typeId: 82
 
 location:
   # Zipcode of your location. Can add more DPS location by using ',' for multiple zipcode
-  zipCode: ['75067', '75080']
+  zipCode: ['75022', '76262']
   # Choose your DPS location by yourself when running the application if set to true
   pickDPSLocation: false
   # Get appointment from all DPS location by distance from the zipcode, will auto skip this when pickDPSLocation is true
@@ -32,7 +32,7 @@ location:
   # DPS is closed on weekends, so you can't book on Saturday and Sunday
   preferredDays: ['Monday']
   # Put true/false without quotes if you want to book only same day appointment
-  sameDay: false
+  sameDay: true
   # Put how many day from today you want to book from start to end (7 is a good number)
   daysAround:
     ## Start date: start and end will start counting from this date
