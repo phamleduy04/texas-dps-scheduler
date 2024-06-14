@@ -215,7 +215,9 @@ class TexasScheduler {
         }
         log.info(
             `${location.Name} is not Available in ${
-                locationConfig.sameDay ? 'the same day' : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from today! `
+                locationConfig.sameDay
+                    ? 'the same day'
+                    : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from ${this.config.location.daysAround.startDate}!`
             } `,
         );
 
