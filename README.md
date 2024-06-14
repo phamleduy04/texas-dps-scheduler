@@ -1,5 +1,5 @@
 # texas-dps-scheduler
-This app will find sameday or nearest 7 day appointments and schedulle it automatically!
+This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments and schedulle it automatically!
 
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fphamleduy04%2Ftexas-dps-scheduler&count_bg=%2379C83D&title_bg=%23555555&icon=typescript.svg&icon_color=%23E7E7E7&title=Views&edge_flat=false)](https://hits.seeyoufarm.com)
 [![DeepScan grade](https://deepscan.io/api/teams/11483/projects/21347/branches/611270/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=11483&pid=21347&bid=611270)
@@ -10,7 +10,8 @@ This app will find sameday or nearest 7 day appointments and schedulle it automa
 ![License](https://img.shields.io/github/license/phamleduy04/texas-dps-scheduler?style=for-the-badge)
 ![Last commit](https://img.shields.io/github/last-commit/phamleduy04/texas-dps-scheduler?style=for-the-badge)
 
-![image](https://user-images.githubusercontent.com/32657584/174190104-a22af0a4-61c3-4189-8a9b-692d84f97183.png)
+![1](https://github.com/phamleduy04/texas-dps-scheduler/assets/32657584/468297d0-eeb1-4194-a507-73cb3bc1daab)
+
 
 # Youtube Tutorial
 - Link [here](https://youtu.be/H1cYwQ16sws)
