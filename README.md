@@ -1,9 +1,6 @@
 # texas-dps-scheduler
 This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments and schedulle it automatically!
 
-# Hostname/IP does not match certificate's altnames error
-Please use version 3.0.0 to fix.
-
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fphamleduy04%2Ftexas-dps-scheduler&count_bg=%2379C83D&title_bg=%23555555&icon=typescript.svg&icon_color=%23E7E7E7&title=Views&edge_flat=false)](https://hits.seeyoufarm.com)
 [![DeepScan grade](https://deepscan.io/api/teams/11483/projects/21347/branches/611270/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=11483&pid=21347&bid=611270)
 [![CodeFactor](https://www.codefactor.io/repository/github/phamleduy04/texas-dps-scheduler/badge)](https://www.codefactor.io/repository/github/phamleduy04/texas-dps-scheduler)
