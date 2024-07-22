@@ -29,7 +29,7 @@ try {
     }
 }
 class TexasScheduler {
-    public requestInstance = new undici.Pool('https://publicapi.txdpsscheduler.com');
+    public requestInstance = new undici.Pool('https://apptapi.txdpsscheduler.com');
     public config = parseConfig();
     public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
 
