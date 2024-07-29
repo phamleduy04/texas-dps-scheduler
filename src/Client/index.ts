@@ -161,7 +161,7 @@ class TexasScheduler {
     private async getLocationDatesAll() {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
-        const getLocationFunctions = this.availableLocation.map(location => () => this.getLocationDates(location));
+        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(3000).then(() => this.getLocationDates(location)));
         for (;;) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
@@ -243,8 +243,13 @@ class TexasScheduler {
             body: JSON.stringify(body),
         });
         if (response.statusCode !== 200) {
+            log.warn(`Got ${response.statusCode} status code`);
+            if (response.statusCode === 403) {
+                log.warn('Got rate limited, sleep for 10s...');
+                await sleep.setTimeout(10000);
+                return this.requestApi(path, method, body, retryTime + 1);
+            }
             if (retryTime < this.config.appSettings.maxRetry) {
-                log.warn(`Got ${response.statusCode} status code, retrying...`);
                 log.error((await response.body.text()) ?? '');
                 return this.requestApi(path, method, body, retryTime + 1);
             }
