@@ -1,6 +1,6 @@
 {
   "name": "texas-dps-scheduler",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Texas DPS Automatic Scheduler",
   "main": "dist/index.js",
   "scripts": {
@@ -20,18 +20,18 @@
   },
   "homepage": "https://github.com/phamleduy04/texas-dps-scheduler#readme",
   "devDependencies": {
-    "@eslint/create-config": "^1.1.6",
+    "@eslint/create-config": "^1.2.0",
     "@types/ms": "^0.7.34",
-    "@types/node": "^20.14.11",
+    "@types/node": "^22.0.0",
     "@types/prompts": "^2.4.9",
-    "@typescript-eslint/eslint-plugin": "^7.16.1",
-    "@typescript-eslint/parser": "^7.16.1",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
     "eslint": "^8.57.0",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
     "prettier": "^3.3.3",
     "ts-node": "^10.9.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "colorette": "^2.0.20",
@@ -40,9 +40,10 @@
     "js-yaml": "^4.1.0",
     "p-queue": "6.6.2",
     "prompts": "^2.4.2",
+    "random-useragent": "^0.5.0",
     "tslib": "^2.6.3",
     "undici": "^6.19.4",
-    "yaml": "^2.4.5",
+    "yaml": "^2.5.0",
     "zod": "^3.23.8"
   },
   "engines": {

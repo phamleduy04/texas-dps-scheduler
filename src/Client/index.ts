@@ -16,6 +16,7 @@ import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/Ex
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import randomUseragent from 'random-useragent';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 let packagejson;
@@ -29,7 +30,11 @@ try {
     }
 }
 class TexasScheduler {
-    public requestInstance = new undici.Pool('https://apptapi.txdpsscheduler.com');
+    public requestInstance = new undici.Pool('https://apptapi.txdpsscheduler.com', {
+        connect: {
+            rejectUnauthorized: false,
+        },
+    });
     public config = parseConfig();
     public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
 
@@ -37,6 +42,7 @@ class TexasScheduler {
     private isBooked = false;
     private isHolded = false;
     private queue = new pQueue({ concurrency: 1 });
+    private userAgent = randomUseragent.getRandom();
 
     public constructor() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
@@ -231,7 +237,7 @@ class TexasScheduler {
             headers: {
                 'Content-Type': 'application/json;charset=UTF-8',
                 Origin: 'https://public.txdpsscheduler.com',
-                Referer: 'https://public.txdpsscheduler.com/',
+                'User-Agent': this.userAgent,
             },
             headersTimeout: this.config.appSettings.headersTimeout,
             body: JSON.stringify(body),
