@@ -5,6 +5,7 @@ import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import { getAuthToken } from '../Browser';
 dayjs.extend(isBetween);
 import prompts from 'prompts';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
@@ -54,6 +55,11 @@ class TexasScheduler {
     }
 
     public async run() {
+        if (!this.config.appSettings.authToken || this.config.appSettings.authToken.length === 0) {
+            log.info('Auth Token is not set, requesting one...');
+            this.config.appSettings.authToken = await getAuthToken();
+            log.info(`Auth Token: ${this.config.appSettings.authToken}`);
+        }
         this.existBooking = await this.checkExistBooking();
         const { exist, response } = this.existBooking;
         if (exist) {
