@@ -48,6 +48,9 @@ location:
     end: 18
 
 appSettings:
+  # Keep this empty, if it didnt work for you, use the wiki below to obtain one
+  # https://github.com/phamleduy04/texas-dps-scheduler/wiki/How-to-get-Captcha-Token
+  captchaToken: ''
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
   cancelIfExist: false
   # The time interval (in ms) the app will recheck for newer dates

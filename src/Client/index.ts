@@ -1,10 +1,10 @@
 import undici, { Dispatcher } from 'undici';
-import pQueue from 'p-queue';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
+import { getCaptchaToken } from '../Browser';
 dayjs.extend(isBetween);
 import prompts from 'prompts';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
@@ -14,16 +14,19 @@ import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
 import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
+import type { AuthPayload } from 'src/Interfaces/Auth';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import randomUseragent from 'random-useragent';
+import PQueue from 'p-queue';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 let packagejson;
 try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     packagejson = require('../../package.json');
 } catch {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         packagejson = require('../package.json');
     } catch {
         packagejson.version = null;
@@ -41,11 +44,12 @@ class TexasScheduler {
     private availableLocation: AvailableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
-    private queue = new pQueue({ concurrency: 1 });
+    private queue = new PQueue({ concurrency: 1 });
     private userAgent = randomUseragent.getRandom();
+    private authToken = null;
 
     public constructor() {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Available Location....');
@@ -54,6 +58,7 @@ class TexasScheduler {
     }
 
     public async run() {
+        await this.setAuthToken();
         this.existBooking = await this.checkExistBooking();
         const { exist, response } = this.existBooking;
         if (exist) {
@@ -118,8 +123,14 @@ class TexasScheduler {
             const response: AvailableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(
                 res => res.body.json() as Promise<AvailableLocationResponse[]>,
             );
+            if (response === null) {
+                log.warn(`No location found for zipcode: ${zipcodeList[i]}`);
+                sleep.setTimeout(2000);
+                continue;
+            } else if (response.length !== 0) log.info(`Found ${response.length} locations for zipcode: ${zipcodeList[i]}`);
             response.forEach(el => (el.ZipCode = zipcodeList[i]));
             finalArray.push(...response);
+            sleep.setTimeout(2000);
         }
 
         return finalArray.sort((a, b) => a.Distance - b.Distance).filter((elem, index) => finalArray.findIndex(obj => obj.Id === elem.Id) === index);
@@ -161,7 +172,7 @@ class TexasScheduler {
     private async getLocationDatesAll() {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
-        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(3000).then(() => this.getLocationDates(location)));
+        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
         for (;;) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
@@ -231,19 +242,26 @@ class TexasScheduler {
     }
 
     private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<Dispatcher.ResponseData> {
+        const headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            Origin: 'https://public.txdpsscheduler.com',
+            'User-Agent': this.userAgent,
+        };
+        if (this.authToken) headers['Authorization'] = this.authToken;
+
         const response = await this.requestInstance.request({
             method,
             path,
-            headers: {
-                'Content-Type': 'application/json;charset=UTF-8',
-                Origin: 'https://public.txdpsscheduler.com',
-                'User-Agent': this.userAgent,
-            },
+            headers,
             headersTimeout: this.config.appSettings.headersTimeout,
             body: JSON.stringify(body),
         });
         if (response.statusCode !== 200) {
             log.warn(`Got ${response.statusCode} status code`);
+            if (response.statusCode === 401) {
+                log.info('Auth token expired! Try to get new token...');
+                await this.setAuthToken();
+            }
             if (response.statusCode === 403) {
                 log.warn('Got rate limited, sleep for 10s...');
                 await sleep.setTimeout(10000);
@@ -326,6 +344,38 @@ class TexasScheduler {
             log.error('Failed to book slot');
             log.error(await response.body.text());
         }
+    }
+
+    private async setAuthToken() {
+        if (!this.config.appSettings.captchaToken) {
+            log.info('No captcha token found! Will try to get one....');
+            this.config.appSettings.captchaToken = await getCaptchaToken();
+        } else {
+            log.info(`Captcha token found: ${this.config.appSettings.captchaToken}`);
+        }
+
+        const requestBody: AuthPayload = {
+            UserName: `${this.config.personalInfo.firstName}_${this.config.personalInfo.lastName}_${this.config.personalInfo.lastFourSSN}`,
+            RecaptchaToken: {
+                Action: 'Login',
+                Token: this.config.appSettings.captchaToken,
+            },
+        };
+
+        const response = await this.requestApi('/api/Auth', 'POST', requestBody);
+
+        if (response.statusCode === 200) {
+            const token = (await response.body.text()) as string;
+            if (token === null) {
+                log.error('Failed to get auth token');
+                process.exit(1);
+            }
+            this.authToken = token;
+        } else {
+            log.error('Failed to get auth token');
+            process.exit(1);
+        }
+        log.info(`Refreshed auth token: ${this.authToken}`);
     }
 }
 
