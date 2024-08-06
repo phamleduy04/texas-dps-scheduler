@@ -49,6 +49,7 @@ location:
 
 appSettings:
   # https://github.com/phamleduy04/texas-dps-scheduler/wiki/How-to-get-Captcha-Token
+  # If this is empty, the bot will try to get one automatically (not guaranteed to work)
   captchaToken: ''
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
   cancelIfExist: false

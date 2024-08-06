@@ -255,6 +255,10 @@ class TexasScheduler {
         });
         if (response.statusCode !== 200) {
             log.warn(`Got ${response.statusCode} status code`);
+            if (response.statusCode === 401) {
+                log.info('Auth token expired! Try to get new token...');
+                await this.setAuthToken();
+            }
             if (response.statusCode === 403) {
                 log.warn('Got rate limited, sleep for 10s...');
                 await sleep.setTimeout(10000);
