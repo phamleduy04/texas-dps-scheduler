@@ -118,6 +118,10 @@ class TexasScheduler {
             const response: AvailableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(
                 res => res.body.json() as Promise<AvailableLocationResponse[]>,
             );
+            if (response === null) {
+                log.warn(`No location found for zipcode: ${zipcodeList[i]}`);
+                continue;
+            }
             response.forEach(el => (el.ZipCode = zipcodeList[i]));
             finalArray.push(...response);
         }
@@ -238,6 +242,7 @@ class TexasScheduler {
                 'Content-Type': 'application/json;charset=UTF-8',
                 Origin: 'https://public.txdpsscheduler.com',
                 'User-Agent': this.userAgent,
+                Authorization: this.config.appSettings.authToken,
             },
             headersTimeout: this.config.appSettings.headersTimeout,
             body: JSON.stringify(body),
