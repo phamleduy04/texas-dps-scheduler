@@ -5,7 +5,7 @@ import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { getAuthToken } from '../Browser';
+import { getCaptchaToken } from '../Browser';
 dayjs.extend(isBetween);
 import prompts from 'prompts';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
@@ -15,6 +15,7 @@ import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
 import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
+import type { AuthPayload } from 'src/Interfaces/Auth';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import randomUseragent from 'random-useragent';
@@ -44,6 +45,7 @@ class TexasScheduler {
     private isHolded = false;
     private queue = new pQueue({ concurrency: 1 });
     private userAgent = randomUseragent.getRandom();
+    private authToken = null;
 
     public constructor() {
         // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
@@ -55,11 +57,7 @@ class TexasScheduler {
     }
 
     public async run() {
-        if (!this.config.appSettings.authToken || this.config.appSettings.authToken.length === 0) {
-            log.info('Auth Token is not set, requesting one...');
-            this.config.appSettings.authToken = await getAuthToken();
-            log.info(`Auth Token: ${this.config.appSettings.authToken}`);
-        }
+        await this.setAuthToken();
         this.existBooking = await this.checkExistBooking();
         const { exist, response } = this.existBooking;
         if (exist) {
@@ -241,15 +239,17 @@ class TexasScheduler {
     }
 
     private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<Dispatcher.ResponseData> {
+        const headers = {
+            'Content-Type': 'application/json;charset=UTF-8',
+            Origin: 'https://public.txdpsscheduler.com',
+            'User-Agent': this.userAgent,
+        };
+        if (this.authToken) headers['Authorization'] = this.authToken;
+
         const response = await this.requestInstance.request({
             method,
             path,
-            headers: {
-                'Content-Type': 'application/json;charset=UTF-8',
-                Origin: 'https://public.txdpsscheduler.com',
-                'User-Agent': this.userAgent,
-                Authorization: this.config.appSettings.authToken,
-            },
+            headers,
             headersTimeout: this.config.appSettings.headersTimeout,
             body: JSON.stringify(body),
         });
@@ -337,6 +337,36 @@ class TexasScheduler {
             log.error('Failed to book slot');
             log.error(await response.body.text());
         }
+    }
+
+    private async setAuthToken() {
+        if (!this.config.appSettings.captchaToken) {
+            log.info('No captcha token found! Will try to get one....');
+            this.config.appSettings.captchaToken = await getCaptchaToken();
+        }
+
+        const requestBody: AuthPayload = {
+            UserName: `${this.config.personalInfo.firstName}_${this.config.personalInfo.lastName}_${this.config.personalInfo.lastFourSSN}`,
+            RecaptchaToken: {
+                Action: 'Login',
+                Token: this.config.appSettings.captchaToken,
+            },
+        };
+
+        const response = await this.requestApi('/api/Auth', 'POST', requestBody);
+
+        if (response.statusCode === 200) {
+            const token = (await response.body.text()) as string;
+            if (token === null) {
+                log.error('Failed to get auth token');
+                process.exit(1);
+            }
+            this.authToken = token;
+        } else {
+            log.error('Failed to get auth token');
+            process.exit(1);
+        }
+        log.info(`Refreshed auth token: ${this.authToken}`);
     }
 }
 

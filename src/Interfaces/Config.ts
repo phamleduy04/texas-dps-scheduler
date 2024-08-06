@@ -34,7 +34,7 @@ const configZod = z.object({
             .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
     }),
     appSettings: z.object({
-        authToken: z.string().default(''),
+        captchaToken: z.string().default(''),
         cancelIfExist: z.boolean().default(false),
         interval: z.number().default(10000),
         webserver: z.boolean().default(false),

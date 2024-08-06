@@ -9,11 +9,13 @@ import AnonymizeUA from 'puppeteer-extra-plugin-anonymize-ua';
 // This plugin use adblocker (bc imleague was bloated with ads!!!!)
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 
+import type { AuthPayload } from '../Interfaces/Auth';
+
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 puppeteer.use(StealthPlugin());
 puppeteer.use(AnonymizeUA());
 
-export const getAuthToken = async (): Promise<string> => {
+export const getCaptchaToken = async (): Promise<string> => {
     try {
         // Launch brower instance
         const browser = await puppeteer.launch({
@@ -69,21 +71,17 @@ export const getAuthToken = async (): Promise<string> => {
         await page.setRequestInterception(true);
         log.dev('Request interception enabled');
 
-        const authTokenPromise = new Promise(async (resolve, reject) => {
+        const captchaTokenPromise = new Promise(async (resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
 
             // Listen for network requests
-            page.on('request', async request => request.continue());
-
-            // Listen for network responses
-            page.on('response', async response => {
-                const url = response.url();
-                log.dev(`URL: ${url}`);
-                if (url === 'https://apptapi.txdpsscheduler.com/api/auth' && response.request().method() == 'POST') {
-                    const token = await response.text();
+            page.on('request', async request => {
+                if (request.url() === 'https://apptapi.txdpsscheduler.com/api/auth' && request.method() == 'POST') {
+                    const postData = JSON.parse(request.postData()) as AuthPayload;
                     clearTimeout(timeout);
-                    resolve(token);
+                    resolve(postData.RecaptchaToken.Token);
                 }
+                request.continue();
             });
 
             // Click the login button
@@ -92,18 +90,19 @@ export const getAuthToken = async (): Promise<string> => {
         });
 
         // Wait for the auth token
-        const authToken = (await authTokenPromise) as string;
+        const captchaToken = (await captchaTokenPromise) as string;
 
         // Close the browser
         await browser.close();
 
-        log.dev(`Auth token: ${authToken}`);
-        return authToken;
+        log.info('Get captcha token successfully!');
+        log.dev(`Captcha token: ${captchaToken}`);
+        return captchaToken;
     } catch (err) {
-        log.error('Error while getting auth token: ', err as Error);
-        log.info('Try to get auth token again or manual set it in config.yml');
+        log.error('Error while getting captcha token: ', err as Error);
+        log.info('Try to get captcha token again or manual set it in config.yml');
         process.exit(1);
     }
 };
 
-if (process.env.NODE_ENV === 'development') getAuthToken();
+if (process.env.NODE_ENV === 'development') getCaptchaToken();
