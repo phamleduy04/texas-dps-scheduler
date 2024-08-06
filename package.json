@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "ts-node --transpile-only src/index.ts",
     "eslint": "eslint src/**/*.ts",
-    "dev-token": "cross-env NODE_ENV=development ts-node src/Browser/index.ts"
+    "dev-token": "cross-env NODE_ENV=development ts-node src/Browser/index.ts",
+    "install-chrome": "npx @puppeteer/browsers install chrome@stable"
   },
   "repository": {
     "type": "git",
