@@ -20,7 +20,7 @@ const error = (message = 'Unknown error', err?: Error) => {
 const info = (message: string) => msg(console.info, message);
 
 // Development mode logging
-const dev = (message: string) => (process.env.NODE_ENV === 'development' ? msg(console.info, message) : null);
+const dev = (message: string) => (process.env.NODE_ENV === 'development' ? msg(console.info, `${yellow('DEBUG ->')} ${message}`) : null);
 
 const warn = (message: string) => msg(console.warn, `${yellow('WARNING ->')} ${message}`);
 

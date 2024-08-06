@@ -1,3 +1,4 @@
+/*
 import puppeteer from 'puppeteer-extra';
 import { executablePath } from 'puppeteer';
 import * as log from '../Log';
@@ -10,12 +11,19 @@ import AnonymizeUA from 'puppeteer-extra-plugin-anonymize-ua';
 import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 
 import type { AuthPayload } from '../Interfaces/Auth';
+import { z } from 'zod';
 
 puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 puppeteer.use(StealthPlugin());
 puppeteer.use(AnonymizeUA());
+*/
 
 export const getCaptchaToken = async (): Promise<string> => {
+    // TODO: for some reason this work ?????????
+    // TODO: if they fix the captcha thing, remove comments
+    return 'abc';
+    
+    /*
     try {
         // Launch brower instance
         const browser = await puppeteer.launch({
@@ -71,11 +79,11 @@ export const getCaptchaToken = async (): Promise<string> => {
         await page.setRequestInterception(true);
         log.dev('Request interception enabled');
 
-        const captchaTokenPromise = new Promise(async (resolve, reject) => {
+        const captchaTokenPromise = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
-
             // Listen for network requests
-            page.on('request', async request => {
+            page.on('request', request => {
+                log.dev(`Request intercepted: ${request.url()}`);
                 if (request.url() === 'https://apptapi.txdpsscheduler.com/api/auth' && request.method() == 'POST') {
                     const postData = JSON.parse(request.postData()) as AuthPayload;
                     clearTimeout(timeout);
@@ -85,8 +93,7 @@ export const getCaptchaToken = async (): Promise<string> => {
             });
 
             // Click the login button
-            await page.waitForSelector('.v-card__actions > button');
-            await page.click('.v-card__actions > button');
+            page.waitForSelector('.v-card__actions > button').then(() => page.click('.v-card__actions > button'));
         });
 
         // Wait for the auth token
@@ -103,6 +110,7 @@ export const getCaptchaToken = async (): Promise<string> => {
         log.info('Try to get captcha token again or manual set it in config.yml');
         process.exit(1);
     }
+    */
 };
 
 if (process.env.NODE_ENV === 'development') getCaptchaToken();

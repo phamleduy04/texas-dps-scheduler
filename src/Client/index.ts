@@ -1,5 +1,4 @@
 import undici, { Dispatcher } from 'undici';
-import pQueue from 'p-queue';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
 import * as log from '../Log';
@@ -19,13 +18,15 @@ import type { AuthPayload } from 'src/Interfaces/Auth';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import randomUseragent from 'random-useragent';
+import PQueue from 'p-queue';
 
-// eslint-disable-next-line @typescript-eslint/no-var-requires
 let packagejson;
 try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     packagejson = require('../../package.json');
 } catch {
     try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         packagejson = require('../package.json');
     } catch {
         packagejson.version = null;
@@ -43,12 +44,12 @@ class TexasScheduler {
     private availableLocation: AvailableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
-    private queue = new pQueue({ concurrency: 1 });
+    private queue = new PQueue({ concurrency: 1 });
     private userAgent = randomUseragent.getRandom();
     private authToken = null;
 
     public constructor() {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires, prettier/prettier
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Available Location....');
@@ -124,10 +125,12 @@ class TexasScheduler {
             );
             if (response === null) {
                 log.warn(`No location found for zipcode: ${zipcodeList[i]}`);
+                sleep.setTimeout(2000);
                 continue;
-            }
+            } else if (response.length !== 0) log.info(`Found ${response.length} locations for zipcode: ${zipcodeList[i]}`);
             response.forEach(el => (el.ZipCode = zipcodeList[i]));
             finalArray.push(...response);
+            sleep.setTimeout(2000);
         }
 
         return finalArray.sort((a, b) => a.Distance - b.Distance).filter((elem, index) => finalArray.findIndex(obj => obj.Id === elem.Id) === index);
@@ -169,7 +172,7 @@ class TexasScheduler {
     private async getLocationDatesAll() {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
-        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(3000).then(() => this.getLocationDates(location)));
+        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
         for (;;) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
@@ -347,6 +350,8 @@ class TexasScheduler {
         if (!this.config.appSettings.captchaToken) {
             log.info('No captcha token found! Will try to get one....');
             this.config.appSettings.captchaToken = await getCaptchaToken();
+        } else {
+            log.info(`Captcha token found: ${this.config.appSettings.captchaToken}`);
         }
 
         const requestBody: AuthPayload = {
