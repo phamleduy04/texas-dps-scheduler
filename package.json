@@ -1,6 +1,6 @@
 {
   "name": "texas-dps-scheduler",
-  "version": "4.0.0-beta2",
+  "version": "4.0.0-beta3",
   "description": "Texas DPS Automatic Scheduler",
   "main": "dist/index.js",
   "scripts": {
@@ -8,7 +8,7 @@
     "build": "tsc",
     "start": "ts-node --transpile-only src/index.ts",
     "eslint": "eslint src/**/*.ts",
-    "dev-token": "cross-env HEADLESS=false NODE_ENV=development ts-node src/Browser/index.ts"
+    "dev-token": "cross-env NODE_ENV=development ts-node src/Browser/index.ts"
   },
   "repository": {
     "type": "git",

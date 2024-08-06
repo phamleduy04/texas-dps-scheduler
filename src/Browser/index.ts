@@ -69,7 +69,9 @@ export const getAuthToken = async (): Promise<string> => {
         await page.setRequestInterception(true);
         log.dev('Request interception enabled');
 
-        const authTokenPromise = new Promise(async resolve => {
+        const authTokenPromise = new Promise(async (resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
+
             // Listen for network requests
             page.on('request', async request => request.continue());
 
@@ -79,6 +81,7 @@ export const getAuthToken = async (): Promise<string> => {
                 log.dev(`URL: ${url}`);
                 if (url === 'https://apptapi.txdpsscheduler.com/api/auth' && response.request().method() == 'POST') {
                     const token = await response.text();
+                    clearTimeout(timeout);
                     resolve(token);
                 }
             });
