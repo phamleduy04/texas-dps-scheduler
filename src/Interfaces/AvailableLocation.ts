@@ -5,7 +5,7 @@ interface BaseLocationPayload {
 
 interface CityLocationPayload extends BaseLocationPayload {
     CityName: string;
-    ZipCode: ''; 
+    ZipCode: '';
 }
 
 interface ZipCodeLocationPayload extends BaseLocationPayload {
@@ -23,6 +23,4 @@ export interface AvailableLocationBase {
     NextAvailableDate: string;
 }
 
-export type AvailableLocationResponse = 
-    (AvailableLocationBase & { ZipCode: string; CityName?: never })
-    | (AvailableLocationBase & { CityName: string; ZipCode?: never });
+export type AvailableLocationResponse = (AvailableLocationBase & { ZipCode: string; CityName?: never }) | (AvailableLocationBase & { CityName: string; ZipCode?: never });

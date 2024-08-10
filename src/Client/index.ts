@@ -49,8 +49,11 @@ class TexasScheduler {
     private authToken = null;
 
     public constructor() {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
+        if (this.config.appSettings.webserver)
+            // eslint-disable-next-line  @typescript-eslint/no-require-imports
+            require('http')
+                .createServer((req: any, res: any) => res.end('Bot is alive!'))
+                .listen(process.env.PORT || 3000);
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Available Location....');
         if (!existsSync('cache')) mkdirSync('cache');
@@ -172,15 +175,12 @@ class TexasScheduler {
     }
 
     private async fetchLocationData(requestBody: AvailableLocationPayload): Promise<AvailableLocationResponse[]> {
-        return await this.requestApi('/api/AvailableLocation/', 'POST', requestBody)
-            .then(res => res.body.json() as Promise<AvailableLocationResponse[]>);
+        return await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(res => res.body.json() as Promise<AvailableLocationResponse[]>);
     }
 
     private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
-        return locations.sort((a, b) => a.Distance - b.Distance)
-            .filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
+        return locations.sort((a, b) => a.Distance - b.Distance).filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
     }
-    
 
     public async requestAvailableLocation(): Promise<void> {
         const response = await this.getAllLocation();
@@ -281,9 +281,10 @@ class TexasScheduler {
             return Promise.resolve(true);
         }
         log.info(
-            `${location.Name} is not Available in ${locationConfig.sameDay
-                ?   'the same day'
-                : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from ${this.config.location.daysAround.startDate}!`
+            `${location.Name} is not Available in ${
+                locationConfig.sameDay
+                    ? 'the same day'
+                    : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from ${this.config.location.daysAround.startDate}!`
             } `,
         );
 
