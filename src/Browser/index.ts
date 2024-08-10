@@ -22,7 +22,7 @@ export const getCaptchaToken = async (): Promise<string> => {
     // TODO: for some reason this work ?????????
     // TODO: if they fix the captcha thing, remove comments
     return 'abc';
-    
+
     /*
     try {
         // Launch brower instance

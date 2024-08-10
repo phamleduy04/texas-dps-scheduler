@@ -49,8 +49,11 @@ class TexasScheduler {
     private authToken = null;
 
     public constructor() {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        if (this.config.appSettings.webserver) require('http').createServer((req: any, res: any) => res.end('Bot is alive!')).listen(process.env.PORT || 3000);
+        if (this.config.appSettings.webserver)
+            // eslint-disable-next-line  @typescript-eslint/no-require-imports
+            require('http')
+                .createServer((req: any, res: any) => res.end('Bot is alive!'))
+                .listen(process.env.PORT || 3000);
         log.info(`Texas Scheduler v${packagejson.version} is starting...`);
         log.info('Requesting Available Location....');
         if (!existsSync('cache')) mkdirSync('cache');
@@ -109,34 +112,78 @@ class TexasScheduler {
         return response[0].ResponseId;
     }
 
-    public async getAllLocationFromZipCodes(): Promise<AvailableLocationResponse[]> {
+    public async getAllLocation(): Promise<AvailableLocationResponse[]> {
         const zipcodeList = this.config.location.zipCode;
+        const cityName = this.config.location.cityName;
+        const typeId = this.config.personalInfo.typeId || 71;
+
         const finalArray: AvailableLocationResponse[] = [];
-        for (let i = 0; i < zipcodeList.length; i++) {
-            const requestBody: AvailableLocationPayload = {
-                CityName: '',
-                PreferredDay: 0,
-                // 71 is new driver license
-                TypeId: this.config.personalInfo.typeId || 71,
-                ZipCode: zipcodeList[i],
-            };
-            const response: AvailableLocationResponse[] = await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(
-                res => res.body.json() as Promise<AvailableLocationResponse[]>,
-            );
-            if (response === null) {
-                log.warn(`No location found for zipcode: ${zipcodeList[i]}`);
-                sleep.setTimeout(2000);
-                continue;
-            } else if (response.length !== 0) log.info(`Found ${response.length} locations for zipcode: ${zipcodeList[i]}`);
-            response.forEach(el => (el.ZipCode = zipcodeList[i]));
+        if (cityName) {
+            const response = await this.getLocationForCity(cityName, typeId);
             finalArray.push(...response);
+        } else {
+            for (const zipCode of zipcodeList) {
+                const response = await this.getLocationForZipCode(zipCode, typeId);
+                finalArray.push(...response);
+            }
+        }
+        return this.filterAndSortLocations(finalArray);
+    }
+
+    private async getLocationForCity(cityName: string, typeId: number): Promise<AvailableLocationResponse[]> {
+        const requestBody: AvailableLocationPayload = {
+            CityName: cityName,
+            PreferredDay: 0,
+            TypeId: typeId,
+            ZipCode: '',
+        };
+
+        const response = await this.fetchLocationData(requestBody);
+        if (response === null) {
+            log.warn(`No location found for city: ${cityName}`);
             sleep.setTimeout(2000);
+            return [];
         }
 
-        return finalArray.sort((a, b) => a.Distance - b.Distance).filter((elem, index) => finalArray.findIndex(obj => obj.Id === elem.Id) === index);
+        if (response.length !== 0) {
+            log.info(`Found ${response.length} locations for City: ${cityName}`);
+        }
+        response.forEach(el => (el.CityName = cityName));
+        return response;
     }
+
+    private async getLocationForZipCode(zipCode: string, typeId: number): Promise<AvailableLocationResponse[]> {
+        const requestBody: AvailableLocationPayload = {
+            CityName: '',
+            PreferredDay: 0,
+            TypeId: typeId,
+            ZipCode: zipCode,
+        };
+
+        const response = await this.fetchLocationData(requestBody);
+        if (response === null) {
+            log.warn(`No location found for zipcode: ${zipCode}`);
+            sleep.setTimeout(2000);
+            return [];
+        }
+
+        if (response.length !== 0) {
+            log.info(`Found ${response.length} locations for zipcode: ${zipCode}`);
+        }
+        response.forEach(el => (el.ZipCode = zipCode));
+        return response;
+    }
+
+    private async fetchLocationData(requestBody: AvailableLocationPayload): Promise<AvailableLocationResponse[]> {
+        return await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(res => res.body.json() as Promise<AvailableLocationResponse[]>);
+    }
+
+    private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
+        return locations.sort((a, b) => a.Distance - b.Distance).filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
+    }
+
     public async requestAvailableLocation(): Promise<void> {
-        const response = await this.getAllLocationFromZipCodes();
+        const response = await this.getAllLocation();
         if (this.config.location.pickDPSLocation) {
             if (existsSync('././cache/location.json')) {
                 this.availableLocation = JSON.parse(readFileSync('././cache/location.json', 'utf-8'));
@@ -147,8 +194,11 @@ class TexasScheduler {
             const userResponse = await prompts({
                 type: 'multiselect',
                 name: 'location',
-                message: 'Choose DPS location, you can choose multiple location!',
-                choices: response.map(el => ({ title: `${el.Name} - ${el.Address} - ${el.Distance} miles away from ${el.ZipCode}!`, value: el })),
+                message: 'Choose DPS location, you can choose multiple locations!',
+                choices: response.map(el => ({
+                    title: `${el.Name} - ${el.Address} - ${el.Distance} miles away from ${el.ZipCode ? el.ZipCode : el.CityName}!`,
+                    value: el,
+                })),
             });
             if (!userResponse.location || userResponse.location.length === 0) {
                 log.error('You must choose at least one location!');
