@@ -132,7 +132,7 @@ class TexasScheduler {
             CityName: cityName,
             PreferredDay: 0,
             TypeId: typeId,
-            ZipCode: ''
+            ZipCode: '',
         };
 
         const response = await this.fetchLocationData(requestBody);
@@ -177,10 +177,10 @@ class TexasScheduler {
     }
 
     private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
-        return locations
-            .sort((a, b) => a.Distance - b.Distance)
+        return locations.sort((a, b) => a.Distance - b.Distance)
             .filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
     }
+    
 
     public async requestAvailableLocation(): Promise<void> {
         const response = await this.getAllLocation();
@@ -223,7 +223,7 @@ class TexasScheduler {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
         const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
-        for (; ;) {
+        for (;;) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
             await sleep.setTimeout(this.config.appSettings.interval);
@@ -282,7 +282,7 @@ class TexasScheduler {
         }
         log.info(
             `${location.Name} is not Available in ${locationConfig.sameDay
-                ? 'the same day'
+                ?   'the same day'
                 : `around ${locationConfig.daysAround.start}-${locationConfig.daysAround.end} days from ${this.config.location.daysAround.startDate}!`
             } `,
         );
