@@ -22,6 +22,8 @@ personalInfo:
   typeId: 71
 
 location:
+  # Search DPS Locations by City Name, if City name is given, zipCode is ignored.
+  cityName: ''
   # Zipcode of your location. Can add more DPS location by using ',' for multiple zipcode
   zipCode: ['75067', '75080']
   # Choose your DPS location by yourself when running the application if set to true
