@@ -14,7 +14,7 @@ const configZod = z.object({
         typeId: z.number().optional(),
     }),
     location: z.object({
-        cityName: z.string().optional(),
+        cityName: z.string().array().optional(),
         zipCode: z.string().array().optional(),
         pickDPSLocation: z.boolean().default(false),
         miles: z.number(),

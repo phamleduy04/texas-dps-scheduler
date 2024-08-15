@@ -114,13 +114,15 @@ class TexasScheduler {
 
     public async getAllLocation(): Promise<AvailableLocationResponse[]> {
         const zipcodeList = this.config.location.zipCode;
-        const cityName = this.config.location.cityName;
+        const cityNameList = this.config.location.cityName;
         const typeId = this.config.personalInfo.typeId || 71;
 
         const finalArray: AvailableLocationResponse[] = [];
-        if (cityName) {
-            const response = await this.getLocationForCity(cityName, typeId);
-            finalArray.push(...response);
+        if (cityNameList.length > 0 && cityNameList[0] !== '') {
+            for (const cityName of cityNameList) {
+                const response = await this.getLocationForCity(cityName, typeId);
+                finalArray.push(...response);
+            }
         } else {
             for (const zipCode of zipcodeList) {
                 const response = await this.getLocationForZipCode(zipCode, typeId);
