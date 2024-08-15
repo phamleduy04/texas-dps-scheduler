@@ -184,6 +184,10 @@ class TexasScheduler {
 
     public async requestAvailableLocation(): Promise<void> {
         const response = await this.getAllLocation();
+        if (response.length === 0) {
+            log.error('No Available location found! You can try add more zipcodes or set city name!');
+            process.exit(0);
+        }
         if (this.config.location.pickDPSLocation) {
             if (existsSync('././cache/location.json')) {
                 this.availableLocation = JSON.parse(readFileSync('././cache/location.json', 'utf-8'));
