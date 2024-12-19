@@ -1,7 +1,7 @@
 export interface AuthPayload {
     UserName: string;
     RecaptchaToken: {
-        Action: 'Login';
+        Action: 'login';
         Token: string;
     };
 }

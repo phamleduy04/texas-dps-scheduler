@@ -4,7 +4,8 @@ import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { getCaptchaToken } from '../Browser';
+import { getAuthTokenFromBroswer } from '../Browser';
+import { CreateCaptchaSolverTask, GetCaptchaSolverResult } from '../CaptchaSolver';
 dayjs.extend(isBetween);
 import prompts from 'prompts';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
@@ -14,10 +15,10 @@ import type { HoldSlotPayload, HoldSlotResponse } from '../Interfaces/HoldSlot';
 import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
 import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
-import type { AuthPayload } from 'src/Interfaces/Auth';
+import type { AuthPayload } from '../Interfaces/Auth';
+import { pushNotifcation } from '../PushNotification';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import randomUseragent from 'random-useragent';
 import PQueue from 'p-queue';
 
 let packagejson;
@@ -45,8 +46,8 @@ class TexasScheduler {
     private isBooked = false;
     private isHolded = false;
     private queue = new PQueue({ concurrency: 1 });
-    private userAgent = randomUseragent.getRandom();
-    private authToken = null;
+    private authToken = this.config.appSettings.authToken ?? '';
+    private maxCaptchaSolverRetries = 25;
 
     public constructor() {
         if (this.config.appSettings.webserver)
@@ -61,7 +62,7 @@ class TexasScheduler {
     }
 
     public async run() {
-        await this.setAuthToken();
+        if (!this.config.appSettings.authToken || this.config.appSettings.authToken === '') await this.getAuthToken();
         this.existBooking = await this.checkExistBooking();
         const { exist, response } = this.existBooking;
         if (exist) {
@@ -301,7 +302,8 @@ class TexasScheduler {
         const headers = {
             'Content-Type': 'application/json;charset=UTF-8',
             Origin: 'https://public.txdpsscheduler.com',
-            'User-Agent': this.userAgent,
+            Referer: 'https://public.txdpsscheduler.com',
+            // 'User-Agent': this.userAgent,
         };
         if (this.authToken) headers['Authorization'] = this.authToken;
 
@@ -314,9 +316,12 @@ class TexasScheduler {
         });
         if (response.statusCode !== 200) {
             log.warn(`Got ${response.statusCode} status code`);
+            log.info(`Endpoint: ${path}`);
+            log.error((await response.body.text()) ?? '');
+            console.log(headers);
             if (response.statusCode === 401) {
                 log.info('Auth token expired! Try to get new token...');
-                await this.setAuthToken();
+                await this.getAuthToken();
             }
             if (response.statusCode === 403) {
                 log.warn('Got rate limited, sleep for 10s...');
@@ -394,6 +399,13 @@ class TexasScheduler {
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             log.info(`Visiting this link to print your booking:`);
             log.info(appointmentURL);
+            if (this.config.appSettings.pushNotifcation.enabled) {
+                log.info('Sending notification...');
+                await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
+                    log.error('Failed to send notification', error);
+                    return;
+                });
+            }
             process.exit(0);
         } else {
             if (this.queue.isPaused) this.queue.start();
@@ -402,36 +414,64 @@ class TexasScheduler {
         }
     }
 
-    private async setAuthToken() {
-        if (!this.config.appSettings.captchaToken) {
-            log.info('No captcha token found! Will try to get one....');
-            this.config.appSettings.captchaToken = await getCaptchaToken();
+    private async getAuthToken() {
+        if (this.config.appSettings.captcha.strategy === 'solver') {
+            const captchaToken = await this.getCatpchaToken();
+            const requestBody: AuthPayload = {
+                UserName: `${this.config.personalInfo.firstName}_${this.config.personalInfo.lastName}_${this.config.personalInfo.lastFourSSN}`,
+                RecaptchaToken: {
+                    Action: 'login',
+                    Token: captchaToken,
+                },
+            };
+
+            log.dev(`Captcha token: ${captchaToken}`);
+            log.dev(`Request body: ${JSON.stringify(requestBody)}`);
+
+            const response = (await this.requestApi('/api/Auth', 'POST', requestBody).then(res => res.body.text())) as string;
+            this.authToken = response;
+            return response;
         } else {
-            log.info(`Captcha token found: ${this.config.appSettings.captchaToken}`);
-        }
-
-        const requestBody: AuthPayload = {
-            UserName: `${this.config.personalInfo.firstName}_${this.config.personalInfo.lastName}_${this.config.personalInfo.lastFourSSN}`,
-            RecaptchaToken: {
-                Action: 'Login',
-                Token: this.config.appSettings.captchaToken,
-            },
-        };
-
-        const response = await this.requestApi('/api/Auth', 'POST', requestBody);
-
-        if (response.statusCode === 200) {
-            const token = (await response.body.text()) as string;
-            if (token === null) {
-                log.error('Failed to get auth token');
-                process.exit(1);
-            }
+            const token = await getAuthTokenFromBroswer();
             this.authToken = token;
-        } else {
-            log.error('Failed to get auth token');
-            process.exit(1);
+            return token;
         }
-        log.info(`Refreshed auth token: ${this.authToken}`);
+    }
+
+    private async getCatpchaToken(taskId?: string | null, retries = 0): Promise<string> {
+        if (retries > this.maxCaptchaSolverRetries) {
+            log.error(`Get captcha token failed after ${this.maxCaptchaSolverRetries} retries! will retry!`);
+            return await this.getCatpchaToken(null, 0);
+        }
+        if (!taskId) taskId = await CreateCaptchaSolverTask();
+        const captchaToken = await this.getCaptchaResult(taskId);
+        if (captchaToken === undefined) {
+            await sleep.setTimeout(2000);
+            return this.getCatpchaToken(taskId, retries + 1);
+        }
+        if (captchaToken === null) {
+            log.error('get captcha token failed! will create new task and sleep 10s!');
+            await sleep.setTimeout(10000);
+            return this.getCatpchaToken(null, retries + 1);
+        }
+        log.info('Captcha token received successfully');
+        return captchaToken;
+    }
+
+    private async getCaptchaResult(taskId: string | null): Promise<string | undefined | null> {
+        if (!taskId) return null;
+        log.info(`Waiting for captcha token from task ${taskId}...`);
+        try {
+            const captchaResult = await GetCaptchaSolverResult(taskId);
+            if (captchaResult.status !== 'ready') {
+                if (captchaResult.status === 'processing') return undefined;
+                else return null;
+            }
+            return captchaResult.solution.gRecaptchaResponse;
+        } catch (err) {
+            log.error('Error while getting captcha token: ', err as Error);
+            return null;
+        }
     }
 }
 

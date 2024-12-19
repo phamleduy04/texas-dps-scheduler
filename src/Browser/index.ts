@@ -1,35 +1,29 @@
-/*
-import puppeteer from 'puppeteer-extra';
-import { executablePath } from 'puppeteer';
-import * as log from '../Log';
+import _ from 'lodash';
+import { fakerEN_US as faker } from '@faker-js/faker';
 
+import puppeteer from 'puppeteer-extra';
+import { executablePath, Page } from 'puppeteer';
 // This plugin prevent bot detection
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 // This plugin anonymize user agent
 import AnonymizeUA from 'puppeteer-extra-plugin-anonymize-ua';
-// This plugin use adblocker (bc imleague was bloated with ads!!!!)
-import AdblockerPlugin from 'puppeteer-extra-plugin-adblocker';
 
-import type { AuthPayload } from '../Interfaces/Auth';
-import { z } from 'zod';
+import * as log from '../Log';
+import parseConfig from '../Config';
+import nodeTimer from 'node:timers/promises';
 
-puppeteer.use(AdblockerPlugin({ blockTrackers: true }));
 puppeteer.use(StealthPlugin());
-puppeteer.use(AnonymizeUA());
-*/
+puppeteer.use(AnonymizeUA({ stripHeadless: true, makeWindows: true }));
 
-export const getCaptchaToken = async (): Promise<string> => {
-    // TODO: for some reason this work ?????????
-    // TODO: if they fix the captcha thing, remove comments
-    return 'abc';
-
-    /*
+export const getAuthTokenFromBroswer = async (): Promise<string> => {
+    const config = parseConfig();
     try {
         // Launch brower instance
         const browser = await puppeteer.launch({
             headless: process.env.HEADLESS?.toLowerCase() == 'false' ? false : 'shell',
             slowMo: 10,
-            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            args: ['--no-sandbox', '--disable-setuid-sandbox', '--disk-cache-size=0'],
+            browser: 'chrome',
             executablePath: executablePath(),
             timeout: 0,
         });
@@ -43,38 +37,27 @@ export const getCaptchaToken = async (): Promise<string> => {
 
         await page.waitForNetworkIdle();
 
+        // switch to espanol
+        await page.waitForSelector('.v-toolbar__content button:nth-child(2)');
+        await page.click('.v-toolbar__content button:nth-child(2)');
+
         // Personal infomation form
         await page.waitForSelector('.v-card__text');
 
-        await page.evaluate(() => {
-            const vcardText = document.querySelector('.v-card__text');
-            if (vcardText) {
-                const inputs = document.querySelectorAll('.v-input');
-                if (inputs.length >= 4) {
-                    for (let i = 1; i < 5; i++) {
-                        const input = inputs[i].querySelector('input') as HTMLInputElement;
-                        switch (i) {
-                            // First name and last name
-                            case 1:
-                            case 2:
-                                input.value = 'test';
-                                break;
-                            // Date of birth
-                            case 3:
-                                input.value = '01/01/2001';
-                                break;
-                            // Last 4 digits of SSN
-                            case 4:
-                                input.value = '1111';
-                                break;
-                        }
-                        // Dispatch an input event to trigger any listeners
-                        const event = new Event('input', { bubbles: true });
-                        input.dispatchEvent(event);
-                    }
-                }
-            }
-        });
+        log.info('Scrolling..');
+        // random scroll
+        const scrollAmount = _.random(-500, 500); // Random scroll between -500 and 500 pixels
+        await page.evaluate(amount => window.scrollBy(0, amount), scrollAmount);
+
+        await nodeTimer.setTimeout(Math.random() * 3000 + 500); // Random delay between 500ms and 1500ms
+
+        log.dev('inputting personal info..');
+        await page.type('.v-input:nth-child(2) input', faker.person.firstName(), { delay: _.random(200, 600) });
+        await page.type('.v-input:nth-child(3) input', faker.person.lastName(), { delay: _.random(200, 600) });
+        await page.type('.v-input:nth-child(4) input', config.personalInfo.dob.replaceAll('/', ''), { delay: _.random(200, 600) });
+        await page.type('.v-input:nth-child(5) input', faker.string.numeric({ length: 4 }), { delay: _.random(200, 600) });
+
+        log.dev('input personal info done');
 
         await page.setRequestInterception(true);
         log.dev('Request interception enabled');
@@ -82,23 +65,37 @@ export const getCaptchaToken = async (): Promise<string> => {
         const captchaTokenPromise = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
             // Listen for network requests
-            page.on('request', request => {
-                log.dev(`Request intercepted: ${request.url()}`);
-                if (request.url() === 'https://apptapi.txdpsscheduler.com/api/auth' && request.method() == 'POST') {
-                    const postData = JSON.parse(request.postData()) as AuthPayload;
+            page.on('request', request => request.continue());
+
+            page.on('response', response => {
+                log.dev(`Response intercepted: ${response.url()}`);
+                if (response.url() === 'https://apptapi.txdpsscheduler.com/api/auth' && response.status() == 200) {
                     clearTimeout(timeout);
-                    resolve(postData.RecaptchaToken.Token);
+                    resolve(response.text());
                 }
-                request.continue();
             });
 
             // Click the login button
-            page.waitForSelector('.v-card__actions > button').then(() => page.click('.v-card__actions > button'));
+            page.waitForSelector('.v-card__actions.text-center > button').then(async () => {
+                await page.click('.v-card__actions.text-center > button');
+                page.waitForSelector('.v-dialog--active')
+                    .then(() => setTimeout(() => tryAgainDialog(page), 5000))
+                    .catch(() => null);
+            });
         });
+
+        const tryAgainDialog = async (page: Page, retryTime = 0) => {
+            log.dev('google catpcha score too low, trying again!');
+            if (retryTime > 10) throw new Error('Captcha token retrieval failled!');
+            await page.click('.v-dialog--active > div > div > button');
+            await page.click('.v-card__actions.text-center > button');
+            page.waitForSelector('.v-dialog--active')
+                .then(() => setTimeout(() => tryAgainDialog(page, retryTime + 1), 5000))
+                .catch(() => null);
+        };
 
         // Wait for the auth token
         const captchaToken = (await captchaTokenPromise) as string;
-
         // Close the browser
         await browser.close();
 
@@ -110,7 +107,6 @@ export const getCaptchaToken = async (): Promise<string> => {
         log.info('Try to get captcha token again or manual set it in config.yml');
         process.exit(1);
     }
-    */
 };
 
-if (process.env.NODE_ENV === 'development') getCaptchaToken();
+// if (process.env.NODE_ENV === 'development') getAuthTokenFromBroswer();

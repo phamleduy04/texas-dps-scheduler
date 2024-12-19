@@ -52,8 +52,8 @@ location:
 
 appSettings:
   # Keep this empty, if it didnt work for you, use the wiki below to obtain one
-  # https://github.com/phamleduy04/texas-dps-scheduler/wiki/How-to-get-Captcha-Token
-  captchaToken: ''
+  # https://github.com/phamleduy04/texas-dps-scheduler/wiki/How-to-get-Auth-Token
+  authToken: ''
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
   cancelIfExist: false
   # The time interval (in ms) the app will recheck for newer dates
@@ -64,3 +64,17 @@ appSettings:
   headersTimeout: 30000 
   # How many times to retry if the request to DPS server failled
   maxRetry: 3
+  # Read this for more infomation: https://github.com/phamleduy04/texas-dps-scheduler/wiki/Captcha-(Auth-Token)
+  captcha:
+    # Avaliable options: solver or browser
+    strategy: 'solver'
+    solverOptions:
+      # Avaliable options: capsolver
+      solverService: ''
+      solverApiToken: ''
+  # ntfy.sh push notification
+  pushNotifcation:
+    enabled: false
+    baseURL: ''
+    topicName: ''
+    token: ''

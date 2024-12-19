@@ -19,7 +19,7 @@ const parseConfig = (): Config => {
     configData.personalInfo.phoneNumber = parsePhoneNumber(configData.personalInfo.phoneNumber);
     let startDate = dayjs(configData.location.daysAround.startDate);
     if (!configData.location.daysAround.startDate || !startDate.isValid() || startDate.isBefore(dayjs())) {
-        log.warn('Invalid date in config.yml, using current date');
+        log.dev('Invalid date in config.yml, using current date');
         startDate = dayjs();
     }
     configData.location.daysAround.startDate = startDate.format('MM/DD/YYYY');

@@ -1,4 +1,4 @@
-const object: { [id: string]: number } = {
+const preferredDays: Record<string, number> = {
     sunday: 0,
     monday: 1,
     tuesday: 2,
@@ -8,4 +8,4 @@ const object: { [id: string]: number } = {
     saturday: 6,
 };
 
-export default object;
+export default preferredDays;

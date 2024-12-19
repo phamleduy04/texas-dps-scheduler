@@ -1,5 +1,8 @@
 # texas-dps-scheduler
 
+# Archive
+- This app will be archived because of [auth changes](https://github.com/phamleduy04/texas-dps-scheduler/issues/175). Thanks for working with you guys :)
+
 This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments and schedulle it automatically!
 
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fphamleduy04%2Ftexas-dps-scheduler&count_bg=%2379C83D&title_bg=%23555555&icon=typescript.svg&icon_color=%23E7E7E7&title=Views&edge_flat=false)](https://hits.seeyoufarm.com)
@@ -11,7 +14,7 @@ This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments
 ![License](https://img.shields.io/github/license/phamleduy04/texas-dps-scheduler?style=for-the-badge)
 ![Last commit](https://img.shields.io/github/last-commit/phamleduy04/texas-dps-scheduler?style=for-the-badge)
 
-![image](https://github.com/user-attachments/assets/9dfd420d-c61f-48bc-ba86-c50e0e5ec6e6)
+![1](https://github.com/phamleduy04/texas-dps-scheduler/assets/32657584/468297d0-eeb1-4194-a507-73cb3bc1daab)
 
 
 # Youtube Tutorial

@@ -35,12 +35,45 @@ const configZod = z.object({
             .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
     }),
     appSettings: z.object({
-        captchaToken: z.string().default(''),
+        authToken: z.string().default(''),
         cancelIfExist: z.boolean().default(false),
         interval: z.number().default(10000),
         webserver: z.boolean().default(false),
         headersTimeout: z.number().default(20000),
         maxRetry: z.number().default(3),
+        captcha: z
+            .object({
+                strategy: z.enum(['browser', 'solver']),
+                solverOptions: z.object({
+                    solverService: z.enum(['2captcha', 'capsolver']).optional(),
+                    solverApiToken: z.string().optional(),
+                }),
+            })
+            .refine(
+                data => {
+                    if (data.strategy === 'browser') return true;
+                    return typeof data.solverOptions.solverService === 'string' && typeof data.solverOptions.solverApiToken === 'string';
+                },
+                {
+                    message: 'If you want to use solver, please provide all required fields',
+                },
+            ),
+        pushNotifcation: z
+            .object({
+                enabled: z.boolean().default(false),
+                baseURL: z.string().optional(),
+                topicName: z.string().optional(),
+                token: z.string().optional(),
+            })
+            .refine(
+                data => {
+                    if (!data.enabled) return true;
+                    return typeof data.baseURL === 'string' && typeof data.topicName === 'string' && typeof data.token === 'string';
+                },
+                {
+                    message: 'If you want to enable push notification, please provide all required fields',
+                },
+            ),
     }),
 });
 
