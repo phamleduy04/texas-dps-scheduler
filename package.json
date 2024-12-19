@@ -7,10 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "ts-node --transpile-only src/index.ts",
-    "eslint": "eslint src/**/*.ts",
-    "dev-broswer-test": "cross-env NODE_ENV=development ts-node src/Browser/index.ts",
-    "install-chrome": "npx @puppeteer/browsers install chrome@stable",
-    "dev-solver-test": "cross-env NODE_ENV=development ts-node src/index.ts"
+    "eslint": "eslint src/**/*.ts"
   },
   "repository": {
     "type": "git",

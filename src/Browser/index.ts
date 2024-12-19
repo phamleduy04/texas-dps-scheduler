@@ -108,5 +108,3 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         process.exit(1);
     }
 };
-
-// if (process.env.NODE_ENV === 'development') getAuthTokenFromBroswer();

@@ -47,7 +47,7 @@ class TexasScheduler {
     private isHolded = false;
     private queue = new PQueue({ concurrency: 1 });
     private authToken = this.config.appSettings.authToken ?? '';
-    private maxCaptchaSolverRetries = 25;
+    private readonly maxCaptchaSolverRetries = 25;
 
     public constructor() {
         if (this.config.appSettings.webserver)
@@ -403,7 +403,6 @@ class TexasScheduler {
                 log.info('Sending notification...');
                 await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
                     log.error('Failed to send notification', error);
-                    return;
                 });
             }
             process.exit(0);
