@@ -67,7 +67,7 @@ appSettings:
   # Read this for more infomation: https://github.com/phamleduy04/texas-dps-scheduler/wiki/Captcha-(Auth-Token)
   captcha:
     # Avaliable options: solver or browser
-    strategy: 'solver'
+    strategy: 'browser'
     solverOptions:
       # Avaliable options: capsolver
       solverService: ''
