@@ -14,14 +14,17 @@ This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments
 ![image](https://github.com/user-attachments/assets/9dfd420d-c61f-48bc-ba86-c50e0e5ec6e6)
 
 
-# Youtube Tutorial
+## Youtube Tutorial
 - Link [here](https://youtu.be/H1cYwQ16sws)
 
-# Why this project exist?
+## Why this project exist?
 It's so frustrating to get appointments and walk ins so I created this project to gain easier access to DPS and get DL.
 
-# Is this illegal?
+## Is this illegal?
 Honesty, I don't know. Just dont abuse it :)
 
-# How to use this project
+## How to use this project
 You can access the wiki [here](https://github.com/phamleduy04/texas-dps-scheduler/wiki/Installation)
+
+## Capsolver
+Capsolver is a platform that provides APIs to solve CAPTCHAs. You can use Capsolver to bypass CAPTCHAs in your web scraping projects. The platform supports solving Google Recaptcha V2, Recaptcha V3, hCaptcha, FunCaptcha, GeeTest, and more. You can create an account [here (referral link)](https://dashboard.capsolver.com/passport/register?inviteCode=EH-lHbISDqj5) and get your API key.
