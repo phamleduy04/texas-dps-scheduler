@@ -19,6 +19,8 @@ export const CapSolverCreateTask = async (clientKey: string) => {
                 websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
                 pageAction: 'login',
             },
+            // Refferal code for developer! You won't cost any money.
+            appId: '38C7C3F9-63F7-4CAB-8C2A-771142941F88',
         }),
     });
 
