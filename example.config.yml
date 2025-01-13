@@ -61,12 +61,12 @@ appSettings:
   # Set this to true if you using replit, heroku or something equivalent
   webserver: false
   # Set this to higher if you encounter Header Timeout error. This one is in miliseconds
-  headersTimeout: 30000 
+  headersTimeout: 50000 
   # How many times to retry if the request to DPS server failled
   maxRetry: 3
   # Read this for more infomation: https://github.com/phamleduy04/texas-dps-scheduler/wiki/Captcha-(Auth-Token)
   captcha:
-    # Avaliable options: solver or browser
+    # Avaliable options: solver, browser or manual
     strategy: 'browser'
     solverOptions:
       # Avaliable options: capsolver

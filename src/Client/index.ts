@@ -1,4 +1,5 @@
-import undici, { Dispatcher } from 'undici';
+import https from 'https';
+import axios, { AxiosResponse } from 'axios';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
 import * as log from '../Log';
@@ -33,11 +34,11 @@ try {
         packagejson.version = null;
     }
 }
+
 class TexasScheduler {
-    public requestInstance = new undici.Pool('https://apptapi.txdpsscheduler.com', {
-        connect: {
-            rejectUnauthorized: false,
-        },
+    private requestClient = axios.create({
+        baseURL: 'https://apptapi.txdpsscheduler.com',
+        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
     public config = parseConfig();
     public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
@@ -46,8 +47,9 @@ class TexasScheduler {
     private isBooked = false;
     private isHolded = false;
     private queue = new PQueue({ concurrency: 1 });
-    private authToken = this.config.appSettings.authToken ?? '';
+    private authToken = '';
     private readonly maxCaptchaSolverRetries = 25;
+    private responseId: number | null = null;
 
     public constructor() {
         if (this.config.appSettings.webserver)
@@ -62,7 +64,11 @@ class TexasScheduler {
     }
 
     public async run() {
-        if (!this.config.appSettings.authToken || this.config.appSettings.authToken === '') await this.getAuthToken();
+        if (existsSync('././cache/token.tmp')) {
+            log.info('Getting auth token from cache...');
+            this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
+        } else await this.getAuthToken();
+        if (this.responseId === null) await this.getResponseId();
         this.existBooking = await this.checkExistBooking();
         const { exist, response } = this.existBooking;
         if (exist) {
@@ -82,7 +88,7 @@ class TexasScheduler {
         };
 
         const response: ExistBookingResponse[] = await this.requestApi('/api/Booking', 'POST', requestBody)
-            .then(res => res.body.json())
+            .then(res => res.data)
             .then((res: ExistBookingResponse[]) => res.filter((booking: ExistBookingResponse) => booking.ServiceTypeId == this.config.personalInfo.typeId));
         // if no booking found, the api will return empty array
         if (response.length > 0) return { exist: true, response };
@@ -109,8 +115,9 @@ class TexasScheduler {
             LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
             CardNumber: '',
         };
-        const response = await this.requestApi('/api/Eligibility', 'POST', requestBody).then(res => res.body.json());
-        return response[0].ResponseId;
+        const response = await this.requestApi('/api/Eligibility', 'POST', requestBody).then(res => res.data);
+        this.responseId = response[0].ResponseId;
+        return true;
     }
 
     public async getAllLocation(): Promise<AvailableLocationResponse[]> {
@@ -178,7 +185,7 @@ class TexasScheduler {
     }
 
     private async fetchLocationData(requestBody: AvailableLocationPayload): Promise<AvailableLocationResponse[]> {
-        return await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(res => res.body.json() as Promise<AvailableLocationResponse[]>);
+        return await this.requestApi('/api/AvailableLocation/', 'POST', requestBody).then(res => res.data as AvailableLocationResponse[]);
     }
 
     private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
@@ -206,6 +213,7 @@ class TexasScheduler {
                     title: `${el.Name} - ${el.Address} - ${el.Distance} miles away from ${el.ZipCode ? el.ZipCode : el.CityName}!`,
                     value: el,
                 })),
+                onState: (state: { aborted: boolean }) => (state.aborted ? process.exit(1) : null),
             });
             if (!userResponse.location || userResponse.location.length === 0) {
                 log.error('You must choose at least one location!');
@@ -246,7 +254,7 @@ class TexasScheduler {
             StartDate: null,
             TypeId: this.config.personalInfo.typeId || 71,
         };
-        const response = (await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.body.json())) as AvailableLocationDatesResponse;
+        const response = (await this.requestApi('/api/AvailableLocationDates', 'POST', requestBody).then(res => res.data)) as AvailableLocationDatesResponse;
         let AvailableDates = response.LocationAvailabilityDates;
 
         if (!locationConfig.sameDay) {
@@ -298,7 +306,7 @@ class TexasScheduler {
         return Promise.reject();
     }
 
-    private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<Dispatcher.ResponseData> {
+    private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<AxiosResponse> {
         const headers = {
             'Content-Type': 'application/json;charset=UTF-8',
             Origin: 'https://public.txdpsscheduler.com',
@@ -307,32 +315,48 @@ class TexasScheduler {
         };
         if (this.authToken) headers['Authorization'] = this.authToken;
 
-        const response = await this.requestInstance.request({
-            method,
-            path,
+        // const response = await this.requestClient.request({
+        //     method,
+        //     url,
+        //     headers,
+        //     timeout: this.config.appSettings.headersTimeout,
+        //     body,
+        // });
+
+        const response = await this.requestClient.request({
+            method, // 'GET' or 'POST'
+            url: path,
             headers,
-            headersTimeout: this.config.appSettings.headersTimeout,
-            body: JSON.stringify(body),
+            timeout: this.config.appSettings.headersTimeout,
+            data: method === 'POST' ? body : undefined, // Include body only for POST requests
+            validateStatus: () => true,
         });
-        if (response.statusCode !== 200) {
-            log.warn(`Got ${response.statusCode} status code`);
+
+        if (response.status !== 200) {
+            log.warn(`Got ${response.status} status code`);
             log.info(`Endpoint: ${path}`);
-            log.error((await response.body.text()) ?? '');
-            console.log(headers);
-            if (response.statusCode === 401) {
+            log.dev(`Auth token: ${headers['Authorization']}`);
+            if (response.status === 401) {
                 log.info('Auth token expired! Try to get new token...');
                 await this.getAuthToken();
+                const repsonseIdStatus = await this.getResponseId();
+
+                if (repsonseIdStatus) {
+                    log.info('Auth token valid!');
+                    log.info('Sleeping for 5s...');
+                    await sleep.setTimeout(5000);
+                }
             }
-            if (response.statusCode === 403) {
+            if (response.status === 403) {
                 log.warn('Got rate limited, sleep for 10s...');
                 await sleep.setTimeout(10000);
                 return this.requestApi(path, method, body, retryTime + 1);
             }
             if (retryTime < this.config.appSettings.maxRetry) {
-                log.error((await response.body.text()) ?? '');
+                log.info(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
                 return this.requestApi(path, method, body, retryTime + 1);
             }
-            log.error(`Got ${response.statusCode} status code, retrying failed!`);
+            log.error(`Got ${response.status} status code, retrying failed!`);
             process.exit(1);
         }
         return response;
@@ -347,14 +371,15 @@ class TexasScheduler {
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             SlotId: booking.SlotId,
         };
-        const response = (await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.body.json())) as HoldSlotResponse;
+        const response = (await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.data)) as HoldSlotResponse;
         if (response.SlotHeldSuccessfully !== true) {
             log.error(`Failed to hold slot: ${response.ErrorMessage}`);
             if (this.queue.isPaused) this.queue.start();
             return;
         }
-        log.info('Slot hold successfully');
+        log.info('Slot hold successfully. Sleeping for 5s...');
         this.isHolded = true;
+        await sleep.setTimeout(5000);
         await this.bookSlot(booking, location);
     }
 
@@ -377,7 +402,7 @@ class TexasScheduler {
             LastName: this.config.personalInfo.lastName,
             HomePhone: '',
             Last4Ssn: this.config.personalInfo.lastFourSSN,
-            ResponseId: await this.getResponseId(),
+            ResponseId: this.responseId,
             SendSms: this.config.personalInfo.phoneNumber ? true : false,
             ServiceTypeId: this.config.personalInfo.typeId || 71,
             SiteId: location.Id,
@@ -385,8 +410,8 @@ class TexasScheduler {
         };
 
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
-        if (response.statusCode === 200) {
-            const bookingInfo = (await response.body.json()) as BookSlotResponse;
+        if (response.status === 200) {
+            const bookingInfo = response.data as BookSlotResponse;
             if (bookingInfo?.Booking === null) {
                 if (this.queue.isPaused) this.queue.start();
                 log.error('Failed to book slot');
@@ -409,13 +434,13 @@ class TexasScheduler {
         } else {
             if (this.queue.isPaused) this.queue.start();
             log.error('Failed to book slot');
-            log.error(await response.body.text());
+            log.error(response.data);
         }
     }
 
     private async getAuthToken() {
         if (this.config.appSettings.captcha.strategy === 'solver') {
-            const captchaToken = await this.getCatpchaToken();
+            const captchaToken = await this.getCaptchaToken();
             const requestBody: AuthPayload = {
                 UserName: `${this.config.personalInfo.firstName}_${this.config.personalInfo.lastName}_${this.config.personalInfo.lastFourSSN}`,
                 RecaptchaToken: {
@@ -426,32 +451,41 @@ class TexasScheduler {
 
             log.dev(`Captcha token: ${captchaToken}`);
             log.dev(`Request body: ${JSON.stringify(requestBody)}`);
-
-            const response = (await this.requestApi('/api/Auth', 'POST', requestBody).then(res => res.body.text())) as string;
+            const response = (await this.requestApi('/api/Auth', 'POST', requestBody).then(res => res.data)) as string;
             this.authToken = response;
-            return response;
-        } else {
+        } else if (this.config.appSettings.captcha.strategy === 'browser') {
             const token = await getAuthTokenFromBroswer();
             this.authToken = token;
-            return token;
+        } else if (this.config.appSettings.captcha.strategy === 'manual') {
+            const response = await prompts({
+                type: 'text',
+                name: 'token',
+                message: 'Your captcha token is expired. Enter the new token: ',
+                onState: (state: { aborted: boolean }) => (state.aborted ? process.exit(1) : null),
+            });
+            this.authToken = response.token;
+        }
+
+        if (this.authToken) {
+            writeFileSync('././cache/token.tmp', this.authToken);
         }
     }
 
-    private async getCatpchaToken(taskId?: string | null, retries = 0): Promise<string> {
+    private async getCaptchaToken(taskId?: string | null, retries = 0): Promise<string> {
         if (retries > this.maxCaptchaSolverRetries) {
             log.error(`Get captcha token failed after ${this.maxCaptchaSolverRetries} retries! will retry!`);
-            return await this.getCatpchaToken(null, 0);
+            return await this.getCaptchaToken(null, 0);
         }
         if (!taskId) taskId = await CreateCaptchaSolverTask();
         const captchaToken = await this.getCaptchaResult(taskId);
         if (captchaToken === undefined) {
             await sleep.setTimeout(2000);
-            return this.getCatpchaToken(taskId, retries + 1);
+            return this.getCaptchaToken(taskId, retries + 1);
         }
         if (captchaToken === null) {
             log.error('get captcha token failed! will create new task and sleep 10s!');
             await sleep.setTimeout(10000);
-            return this.getCatpchaToken(null, retries + 1);
+            return this.getCaptchaToken(null, retries + 1);
         }
         log.info('Captcha token received successfully');
         return captchaToken;

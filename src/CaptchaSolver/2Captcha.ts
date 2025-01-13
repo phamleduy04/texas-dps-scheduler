@@ -1,17 +1,13 @@
-import { Pool } from 'undici';
+import axios from 'axios';
 import * as log from '../Log';
 import type { CreateTaskResponse, GetResultResponse } from '../Interfaces/Captcha';
 
-const captchaClient = new Pool('https://api.2captcha.com');
+const captchaClient = axios.create({ baseURL: 'https://api.2captcha.com' });
 
 export const TwoCaptchaCreateTask = async (clientKey: string) => {
-    const getTaskID = await captchaClient.request({
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        path: '/createTask',
-        body: JSON.stringify({
+    const getTaskID = await captchaClient.post(
+        '/createTask',
+        {
             clientKey,
             task: {
                 type: 'RecaptchaV3TaskProxyless',
@@ -21,29 +17,34 @@ export const TwoCaptchaCreateTask = async (clientKey: string) => {
                 isEnterprise: true,
                 pageAction: 'login',
             },
-        }),
-    });
+        },
+        {
+            headers: { 'Content-Type': 'application/json' },
+            validateStatus: () => true,
+        },
+    );
 
-    const taskIdRepsonse = (await getTaskID.body.json()) as CreateTaskResponse;
-    if (getTaskID.statusCode !== 200) {
+    const taskIdRepsonse = getTaskID.data as CreateTaskResponse;
+    if (getTaskID.status !== 200) {
         log.error(`${taskIdRepsonse.errorId}: ${taskIdRepsonse.errorDescription ?? 'No error description'} `);
-        throw new Error(`Got ${getTaskID.statusCode} status code`);
+        throw new Error(`Got ${getTaskID.status} status code`);
     }
     return taskIdRepsonse.taskId;
 };
 
 export const TwoCaptchaGetResult = async (taskId: string, clientKey: string) => {
-    const captchaResult = await captchaClient.request({
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        path: '/getTaskResult',
-        body: JSON.stringify({
+    const captchaResult = await captchaClient.post(
+        '/getTaskResult',
+        {
             clientKey,
             taskId,
-        }),
-    });
-    const captchaResultResponse = (await captchaResult.body.json()) as GetResultResponse;
+        },
+        {
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        },
+    );
+    const captchaResultResponse = captchaResult.data as GetResultResponse;
     return captchaResultResponse;
 };
