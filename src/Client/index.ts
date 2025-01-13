@@ -36,7 +36,7 @@ try {
 }
 
 class TexasScheduler {
-    private requestClient = axios.create({
+    private readonly requestClient = axios.create({
         baseURL: 'https://apptapi.txdpsscheduler.com',
         httpsAgent: new https.Agent({ rejectUnauthorized: false }),
     });
@@ -315,16 +315,8 @@ class TexasScheduler {
         };
         if (this.authToken) headers['Authorization'] = this.authToken;
 
-        // const response = await this.requestClient.request({
-        //     method,
-        //     url,
-        //     headers,
-        //     timeout: this.config.appSettings.headersTimeout,
-        //     body,
-        // });
-
         const response = await this.requestClient.request({
-            method, // 'GET' or 'POST'
+            method,
             url: path,
             headers,
             timeout: this.config.appSettings.headersTimeout,
