@@ -22,6 +22,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         const browser = await puppeteer.launch({
             headless: process.env.HEADLESS?.toLowerCase() == 'false' ? false : 'shell',
             slowMo: 10,
+            defaultViewport: { width:1920, height:1080 },
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disk-cache-size=0'],
             browser: 'chrome',
             executablePath: executablePath(),
