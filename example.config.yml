@@ -51,9 +51,6 @@ location:
     end: 18
 
 appSettings:
-  # Keep this empty, if it didnt work for you, use the wiki below to obtain one
-  # https://github.com/phamleduy04/texas-dps-scheduler/wiki/How-to-get-Auth-Token
-  authToken: ''
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
   cancelIfExist: false
   # The time interval (in ms) the app will recheck for newer dates
@@ -69,8 +66,7 @@ appSettings:
     # Avaliable options: solver, browser or manual
     strategy: 'browser'
     solverOptions:
-      # Avaliable options: capsolver
-      solverService: ''
+      solverService: 'capsolver'
       solverApiToken: ''
   # ntfy.sh push notification
   pushNotifcation:
