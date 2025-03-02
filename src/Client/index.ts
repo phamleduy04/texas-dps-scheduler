@@ -73,7 +73,13 @@ class TexasScheduler {
         const { exist, response } = this.existBooking;
         if (exist) {
             log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
-            log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+            if (!this.config.appSettings.cancelIfExist) {
+                log.warn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
+            }
+            else {
+                log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
+            }
+
         }
         await this.requestAvailableLocation();
         await this.getLocationDatesAll();
