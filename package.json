@@ -44,6 +44,7 @@
     "colorette": "^2.0.20",
     "dayjs": "^1.11.13",
     "dotenv": "^16.4.7",
+    "ghost-cursor": "^1.4.1",
     "lodash": "^4.17.21",
     "p-queue": "6.6.2",
     "prompts": "^2.4.2",
