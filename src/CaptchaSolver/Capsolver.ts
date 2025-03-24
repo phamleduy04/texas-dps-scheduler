@@ -14,6 +14,12 @@ export const CapSolverCreateTask = async (clientKey: string) => {
                 websiteURL: 'https://public.txdpsscheduler.com',
                 websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
                 pageAction: 'login',
+                proxyType: "https",// socks5 | http | https
+                proxyAddress: "216.10.27.159",
+                proxyPort: 6837,
+                proxyLogin: "ozjluwnp",
+                proxyPassword: "2fx78smxepkq", 
+
             },
             // Refferal code for developer! You won't cost any money.
             appId: '38C7C3F9-63F7-4CAB-8C2A-771142941F88',
