@@ -1,6 +1,6 @@
 import _ from 'lodash';
 import puppeteer from 'puppeteer-extra';
-import { executablePath, Page } from 'puppeteer';
+import { Page } from 'puppeteer';
 import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import AnonymizeUA from 'puppeteer-extra-plugin-anonymize-ua';
 import { createCursor } from 'ghost-cursor'; // Add this package for realistic mouse movements
@@ -256,7 +256,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                             // Wait before attempting to retry
                             setTimeout(() => tryAgainDialog(page, cursor), _.random(5000, 8000));
                         } catch (e) {
-                            log.dev('No dialog appeared, CAPTCHA might have passed');
+                            log.dev('No dialog appeared, CAPTCHA might have passed' + e);
                         }
                     })
                     .catch(e => {
@@ -306,8 +306,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
                         // Dialog appeared, need to retry
                         setTimeout(() => tryAgainDialog(page, cursor, retryTime + 1), _.random(6000, 10000));
                     } catch (e) {
-                        // No dialog, might be success
-                        log.dev('No dialog after retry, CAPTCHA might have passed');
+                        log.dev('No dialog after retry, CAPTCHA might have passed' + e);
                     }
                 } catch (error) {
                     log.error(`Error during CAPTCHA retry:`, error);
