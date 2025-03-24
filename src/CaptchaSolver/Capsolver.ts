@@ -15,10 +15,10 @@ export const CapSolverCreateTask = async (clientKey: string) => {
                 websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
                 pageAction: 'login',
                 proxyType: "https",// socks5 | http | https
-                proxyAddress: "216.10.27.159",
-                proxyPort: 6837,
-                proxyLogin: "ozjluwnp",
-                proxyPassword: "2fx78smxepkq", 
+                proxyAddress: "216.10.27.159", //add proxy address here
+                proxyPort: 6837, // add proxy port here
+                proxyLogin: "ozjluwnp", // add login name
+                proxyPassword: "2fx78smxepkq", //add password
 
             },
             // Refferal code for developer! You won't cost any money.
