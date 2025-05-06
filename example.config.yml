@@ -17,7 +17,7 @@ personalInfo:
   # WARNING: Use number only (Ex: 111111111)
   phoneNumber: ''
 
-  # Put your real Texas DL number here, if you don't have one, put any number
+  # Put your real Texas DL number here, if you are doing DL renewal appointments.
   # WARNING: Use number only (Ex: 111111111)
   cardNumber: ''
 
