@@ -50,7 +50,7 @@ function parsePersonalInfo(configData: Config) {
     if (!configData.personalInfo.loadFromEnv) return configData;
     log.info('Loading personal info from environment variables.');
     const { FIRSTNAME, LASTNAME, DOB, EMAIL, LASTFOURSSN, PHONENUMBER, CARDNUMBER } = process.env;
-    if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN || !CARDNUMBER) {
+    if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN) {
         log.error('Missing environment variables for personal info. Please refer to example.env file.');
         process.exit(1);
     }
