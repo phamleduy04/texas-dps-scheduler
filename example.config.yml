@@ -17,6 +17,10 @@ personalInfo:
   # WARNING: Use number only (Ex: 111111111)
   phoneNumber: ''
 
+  # Put your real Texas DL number here, if you don't have one, put any number
+  # WARNING: Use number only (Ex: 111111111)
+  cardNumber: ''
+
   # Serivce you needed at DPS. Check the full list on https://github.com/phamleduy04/texas-dps-scheduler/wiki/TypeId-list
   # If you need to apply for Texas DL you don't need to change it
   typeId: 71
