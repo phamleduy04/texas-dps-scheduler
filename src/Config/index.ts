@@ -49,8 +49,8 @@ function parsePreferredDays(preferredDay: string[]): number[] {
 function parsePersonalInfo(configData: Config) {
     if (!configData.personalInfo.loadFromEnv) return configData;
     log.info('Loading personal info from environment variables.');
-    const { FIRSTNAME, LASTNAME, DOB, EMAIL, LASTFOURSSN, PHONENUMBER } = process.env;
-    if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN) {
+    const { FIRSTNAME, LASTNAME, DOB, EMAIL, LASTFOURSSN, PHONENUMBER, CARDNUMBER } = process.env;
+    if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN || !CARDNUMBER) {
         log.error('Missing environment variables for personal info. Please refer to example.env file.');
         process.exit(1);
     }
@@ -60,5 +60,6 @@ function parsePersonalInfo(configData: Config) {
     configData.personalInfo.email = EMAIL;
     configData.personalInfo.lastFourSSN = LASTFOURSSN;
     configData.personalInfo.phoneNumber = PHONENUMBER;
+    configData.personalInfo.cardNumber = CARDNUMBER;
     return configData;
 }

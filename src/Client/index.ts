@@ -119,7 +119,7 @@ class TexasScheduler {
             LastName: this.config.personalInfo.lastName,
             DateOfBirth: this.config.personalInfo.dob,
             LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
-            CardNumber: '',
+            CardNumber: this.config.personalInfo.cardNumber,
         };
         const response = await this.requestApi('/api/Eligibility', 'POST', requestBody).then(res => res.data);
         this.responseId = response[0].ResponseId;
