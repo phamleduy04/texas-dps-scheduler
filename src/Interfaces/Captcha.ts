@@ -11,6 +11,7 @@ export interface GetResultResponse {
     solution: {
         gRecaptchaResponse: string;
         token: string;
+        userAgent: string;
     };
     cost: string;
     ip: string;

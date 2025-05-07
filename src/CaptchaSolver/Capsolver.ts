@@ -11,7 +11,7 @@ export const CapSolverCreateTask = async (clientKey: string) => {
             clientKey,
             task: {
                 type: 'ReCaptchaV3EnterpriseTaskProxyless',
-                websiteURL: 'https://public.txdpsscheduler.com',
+                websiteURL: 'https://www.txdpsscheduler.com',
                 websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
                 pageAction: 'login',
             },

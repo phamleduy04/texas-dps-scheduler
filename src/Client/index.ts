@@ -35,6 +35,11 @@ try {
     }
 }
 
+interface CaptchaResult {
+    captchaToken: string;
+    userAgent: string;
+}
+
 class TexasScheduler {
     private readonly requestClient = axios.create({
         baseURL: 'https://apptapi.txdpsscheduler.com',
@@ -46,10 +51,11 @@ class TexasScheduler {
     private availableLocation: AvailableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
-    private queue = new PQueue({ concurrency: 1 });
+    private readonly queue = new PQueue({ concurrency: 1 });
     private authToken = '';
     private readonly maxCaptchaSolverRetries = 25;
     private responseId: number | null = null;
+    private userAgent: string | null = null;
 
     public constructor() {
         if (this.config.appSettings.webserver)
@@ -75,11 +81,9 @@ class TexasScheduler {
             log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
             if (!this.config.appSettings.cancelIfExist) {
                 log.warn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
-            }
-            else {
+            } else {
                 log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
             }
-
         }
         await this.requestAvailableLocation();
         await this.getLocationDatesAll();
@@ -315,11 +319,14 @@ class TexasScheduler {
     private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<AxiosResponse> {
         const headers = {
             'Content-Type': 'application/json;charset=UTF-8',
-            Origin: 'https://public.txdpsscheduler.com',
-            Referer: 'https://public.txdpsscheduler.com',
-            // 'User-Agent': this.userAgent,
+            Origin: 'https://www.txdpsscheduler.com',
+            Referer: 'https://www.txdpsscheduler.com',
+            Dnt: '1',
         };
         if (this.authToken) headers['Authorization'] = this.authToken;
+        if (this.userAgent) headers['User-Agent'] = this.userAgent;
+
+        console.log(headers);
 
         const response = await this.requestClient.request({
             method,
@@ -401,7 +408,7 @@ class TexasScheduler {
             HomePhone: '',
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             ResponseId: this.responseId,
-            SendSms: this.config.personalInfo.phoneNumber ? true : false,
+            SendSms: !!this.config.personalInfo.phoneNumber,
             ServiceTypeId: this.config.personalInfo.typeId || 71,
             SiteId: location.Id,
             SpanishLanguage: 'N',
@@ -417,7 +424,7 @@ class TexasScheduler {
                 this.isHolded = false;
                 return;
             }
-            const appointmentURL = `https://public.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
+            const appointmentURL = `https://www.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
             this.isBooked = true;
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             log.info(`Visiting this link to print your booking:`);
@@ -447,6 +454,8 @@ class TexasScheduler {
                 },
             };
 
+            console.log(requestBody);
+
             log.dev(`Captcha token: ${captchaToken}`);
             log.dev(`Request body: ${JSON.stringify(requestBody)}`);
             const response = (await this.requestApi('/api/Auth', 'POST', requestBody).then(res => res.data)) as string;
@@ -475,21 +484,22 @@ class TexasScheduler {
             return await this.getCaptchaToken(null, 0);
         }
         if (!taskId) taskId = await CreateCaptchaSolverTask();
-        const captchaToken = await this.getCaptchaResult(taskId);
-        if (captchaToken === undefined) {
+        const captchaResult = await this.getCaptchaResult(taskId);
+        if (captchaResult === undefined) {
             await sleep.setTimeout(2000);
             return this.getCaptchaToken(taskId, retries + 1);
         }
-        if (captchaToken === null) {
+        if (captchaResult === null) {
             log.error('get captcha token failed! will create new task and sleep 10s!');
             await sleep.setTimeout(10000);
             return this.getCaptchaToken(null, retries + 1);
         }
         log.info('Captcha token received successfully');
-        return captchaToken;
+        this.userAgent = captchaResult.userAgent;
+        return captchaResult.captchaToken;
     }
 
-    private async getCaptchaResult(taskId: string | null): Promise<string | undefined | null> {
+    private async getCaptchaResult(taskId: string | null): Promise<CaptchaResult | undefined | null> {
         if (!taskId) return null;
         log.info(`Waiting for captcha token from task ${taskId}...`);
         try {
@@ -498,7 +508,10 @@ class TexasScheduler {
                 if (captchaResult.status === 'processing') return undefined;
                 else return null;
             }
-            return captchaResult.solution.gRecaptchaResponse;
+            return {
+                captchaToken: captchaResult.solution.gRecaptchaResponse,
+                userAgent: captchaResult.solution.userAgent,
+            };
         } catch (err) {
             log.error('Error while getting captcha token: ', err as Error);
             return null;

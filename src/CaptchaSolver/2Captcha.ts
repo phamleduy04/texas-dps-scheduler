@@ -11,7 +11,7 @@ export const TwoCaptchaCreateTask = async (clientKey: string) => {
             clientKey,
             task: {
                 type: 'RecaptchaV3TaskProxyless',
-                websiteURL: 'https://public.txdpsscheduler.com',
+                websiteURL: 'https://www.txdpsscheduler.com',
                 websiteKey: '6LesF7oaAAAAAEvJD0hjmTUib8Q5PGjTo54U2ieP',
                 minScore: '0.9',
                 isEnterprise: true,
