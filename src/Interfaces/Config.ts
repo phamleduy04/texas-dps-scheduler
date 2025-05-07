@@ -12,6 +12,7 @@ const configZod = z.object({
         lastFourSSN: z.string(),
         phoneNumber: z.string().optional().nullable(),
         typeId: z.number().optional(),
+        cardNumber: z.string().optional(),
     }),
     location: z.object({
         cityName: z.string().array().optional(),
