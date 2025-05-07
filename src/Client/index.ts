@@ -326,8 +326,6 @@ class TexasScheduler {
         if (this.authToken) headers['Authorization'] = this.authToken;
         if (this.userAgent) headers['User-Agent'] = this.userAgent;
 
-        console.log(headers);
-
         const response = await this.requestClient.request({
             method,
             url: path,
@@ -453,8 +451,6 @@ class TexasScheduler {
                     Token: captchaToken,
                 },
             };
-
-            console.log(requestBody);
 
             log.dev(`Captcha token: ${captchaToken}`);
             log.dev(`Request body: ${JSON.stringify(requestBody)}`);
