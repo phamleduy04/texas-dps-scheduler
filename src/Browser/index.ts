@@ -21,7 +21,6 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             headless: process.env.HEADLESS?.toLowerCase() == 'false' ? false : 'shell',
             slowMo: 10,
             args: ['--no-sandbox', '--disable-setuid-sandbox', '--disk-cache-size=0'],
-            browser: 'chrome',
             executablePath: executablePath(),
             timeout: 0,
         });
@@ -69,25 +68,18 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             window.scrollBy(0, scrollHeight - Math.random() * 400);
         });
 
-        await page.setRequestInterception(true);
-        log.dev('Request interception enabled');
-
+        log.dev('Setting up network interception...');
+        const client = await page.createCDPSession();
+        await client.send('Network.enable');
+        
         const captchaTokenPromise = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
-            // Listen for network requests
-            page.on('request', request => {
-                if (request.resourceType() == 'stylesheet' || request.resourceType() == 'font' || request.resourceType() == 'image') {
-                    request.abort();
-                } else {
-                    request.continue();
-                }
-            });
-
-            page.on('response', response => {
-                log.dev(`Response intercepted: ${response.url()}`);
-                if (response.url() === 'https://apptapi.txdpsscheduler.com/api/auth' && response.status() == 200) {
+            
+            client.on('Network.responseReceived', async (event) => {
+                if (event.response.url === 'https://apptapi.txdpsscheduler.com/api/auth' && event.response.status === 200) {
+                    const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
                     clearTimeout(timeout);
-                    resolve(response.text());
+                    resolve(response.body);
                 }
             });
 
@@ -103,9 +95,9 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         const tryAgainDialog = async (page: Page, retryTime = 0) => {
             log.dev('google catpcha score too low, trying again!');
             if (retryTime > 10) throw new Error('Captcha token retrieval failled!');
-            nodeTimer.setTimeout(_.random(1000, 3000, false));
+            await nodeTimer.setTimeout(_.random(1000, 3000, false));
             await page.click('.v-dialog--active > div > div > button');
-            nodeTimer.setTimeout(_.random(1000, 3000, false));
+            await nodeTimer.setTimeout(_.random(1000, 3000, false));
             await page.click('.v-card__actions.text-center > button');
             page.waitForSelector('.v-dialog--active')
                 .then(() => setTimeout(() => tryAgainDialog(page, retryTime + 1), 5000))
