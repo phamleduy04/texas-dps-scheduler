@@ -71,11 +71,11 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         log.dev('Setting up network interception...');
         const client = await page.createCDPSession();
         await client.send('Network.enable');
-        
+
         const captchaTokenPromise = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
-            
-            client.on('Network.responseReceived', async (event) => {
+
+            client.on('Network.responseReceived', async event => {
                 if (event.response.url === 'https://apptapi.txdpsscheduler.com/api/auth' && event.response.status === 200) {
                     const response = await client.send('Network.getResponseBody', { requestId: event.requestId });
                     clearTimeout(timeout);
