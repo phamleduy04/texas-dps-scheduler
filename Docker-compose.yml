@@ -1,8 +1,12 @@
-version: '3.6'
-
 services:
   dps-scheduler:
     image: ghcr.io/phamleduy04/texas-dps-scheduler:latest
     container_name: texas-dps-scheduler
+    cap_add:
+      - SYS_ADMIN
+    init: true
     volumes:
       - ./config.yml:/home/container/config.yml
+    environment:
+      # Switch this to false for better captcha detection
+      - HEADLESS=false

@@ -1,4 +1,4 @@
-FROM node:alpine as ts-compiler
+FROM node:slim AS ts-compiler
 WORKDIR /home/container
 
 COPY . .
@@ -6,7 +6,7 @@ COPY . .
 RUN yarn install
 RUN yarn run build
 
-FROM node:alpine as ts-remover
+FROM node:slim AS ts-remover
 WORKDIR /home/container
 
 COPY --from=ts-compiler /home/container/package.json ./
@@ -14,7 +14,28 @@ COPY --from=ts-compiler /home/container/dist ./
 
 RUN yarn install --production
 
-FROM node:slim
+FROM ghcr.io/puppeteer/puppeteer:latest
 WORKDIR /home/container
+
+USER root
+
+RUN apt-get update \
+    && apt-get install -y \
+        xvfb \
+        fonts-liberation \
+        fonts-dejavu-core \
+        fontconfig \
+        libxss1 \
+        libgconf-2-4 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy and set up the initialization script
+COPY docker-init.sh /docker-init.sh
+RUN chmod +x /docker-init.sh
+
+USER pptruser
+
+# Copy the built application from previous stage
 COPY --from=ts-remover /home/container ./
-CMD ["node", "index.js"]
+
+CMD ["/docker-init.sh"]

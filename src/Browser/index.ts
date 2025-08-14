@@ -32,9 +32,10 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             height: 1080 + _.random(0, 200),
             deviceScaleFactor: 1,
             hasTouch: false,
-            isLandscape: false,
+            isLandscape: true,
             isMobile: false,
         });
+
         await page.setJavaScriptEnabled(true);
         await page.setDefaultNavigationTimeout(0);
         await page.goto('https://www.txdpsscheduler.com/');
