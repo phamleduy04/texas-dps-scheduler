@@ -21,12 +21,12 @@ USER root
 
 RUN apt-get update \
     && apt-get install -y \
-        xvfb \
-        fonts-liberation \
-        fonts-dejavu-core \
         fontconfig \
-        libxss1 \
+        fonts-dejavu-core \
+        fonts-liberation \
         libgconf-2-4 \
+        libxss1 \
+        xvfb \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy and set up the initialization script
