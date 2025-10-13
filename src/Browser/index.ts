@@ -4,13 +4,14 @@ import { chromium, Page } from 'patchright';
 import * as log from '../Log';
 import parseConfig from '../Config';
 import nodeTimer from 'node:timers/promises';
+import os from 'node:os';
 
 export const getAuthTokenFromBroswer = async (): Promise<string> => {
     const config = parseConfig();
     try {
         // Launch brower instance
         const browser = await chromium.launch({
-            channel: 'chrome',
+            channel: os.arch() === 'arm64' ? 'chromium' : 'chrome',
             headless: false,
         });
         const page = await browser.newPage();
