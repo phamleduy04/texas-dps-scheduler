@@ -59,7 +59,6 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             // Click the login button
             page.waitForSelector('.v-card__actions.text-center > button').then(async () => {
                 await page.click('.v-card__actions.text-center > button');
-                // await page.click('.v-card__actions.text-center > button');
                 page.waitForSelector('.v-dialog--active')
                     .then(() => setTimeout(() => tryAgainDialog(page), 5000))
                     .catch(() => null);
@@ -71,10 +70,8 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             if (retryTime > 10) throw new Error('Captcha token retrieval failled!');
             await nodeTimer.setTimeout(_.random(1000, 3000, false));
             await page.click('.v-dialog--active > div > div > button');
-            // await page.click('.v-dialog--active > div > div > button');
             await nodeTimer.setTimeout(_.random(1000, 3000, false));
             await page.click('.v-card__actions.text-center > button');
-            // await page.click('.v-card__actions.text-center > button');
             page.waitForSelector('.v-dialog--active')
                 .then(() => setTimeout(() => tryAgainDialog(page, retryTime + 1), 5000))
                 .catch(() => null);
