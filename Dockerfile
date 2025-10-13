@@ -16,8 +16,6 @@ COPY --from=ts-compiler /home/container/package.json ./
 COPY --from=ts-compiler /home/container/dist ./
 
 COPY docker-init.sh /docker-init.sh
-RUN chmod +x /docker-init.sh
-
-RUN yarn install --production && yarn cache clean
+RUN chmod +x /docker-init.sh && yarn install --production && yarn cache clean
 
 CMD ["/docker-init.sh"]
