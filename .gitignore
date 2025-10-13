@@ -7,3 +7,4 @@ pnpm-lock.yaml
 cache/*
 .env
 .tool-versions
+.cache

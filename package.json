@@ -1,6 +1,6 @@
 {
   "name": "texas-dps-scheduler",
-  "version": "5.1.5",
+  "version": "5.2.0",
   "description": "Texas DPS Automatic Scheduler",
   "main": "dist/index.js",
   "scripts": {
@@ -46,11 +46,8 @@
     "dotenv": "^16.4.7",
     "lodash": "^4.17.21",
     "p-queue": "6.6.2",
+    "patchright": "^1.56.0",
     "prompts": "^2.4.2",
-    "puppeteer": "^24.0.0",
-    "puppeteer-extra": "^3.3.6",
-    "puppeteer-extra-plugin-anonymize-ua": "^2.4.6",
-    "puppeteer-extra-plugin-stealth": "^2.11.2",
     "tslib": "^2.8.1",
     "yaml": "^2.7.0",
     "zod": "^3.24.1"
