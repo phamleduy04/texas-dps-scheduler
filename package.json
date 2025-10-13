@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "ts-node --transpile-only src/index.ts",
     "start-debug": "NODE_ENV=development npm run start",
-    "eslint": "eslint src/**/*.ts"
+    "eslint": "eslint src/**/*.ts",
+    "postinstall": "npx patchright install --with-deps --no-shell chromium"
   },
   "repository": {
     "type": "git",
