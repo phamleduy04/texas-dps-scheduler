@@ -15,7 +15,7 @@ This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments
 
 
 ## Youtube Tutorial
-- Link [here](https://youtu.be/H1cYwQ16sws)
+- Link [here](https://youtu.be/YdxDm3GPcWQ)
 
 ## Why this project exist?
 It's so frustrating to get appointments and walk ins so I created this project to gain easier access to DPS and get DL.
