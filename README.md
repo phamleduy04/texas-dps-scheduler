@@ -27,3 +27,7 @@ You can access the wiki [here](https://github.com/phamleduy04/texas-dps-schedule
 
 ## Capsolver
 Capsolver is a platform that provides APIs to solve CAPTCHAs. You can use Capsolver to bypass CAPTCHAs in your web scraping projects. It supports solving Google reCAPTCHA v2, reCAPTCHA v3, and [more](https://docs.capsolver.com/en/guide/getting-started/). You can create an account [here (referral link)](https://dashboard.capsolver.com/passport/register?inviteCode=EH-lHbISDqj5) and get your API key.
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=phamleduy04/texas-dps-scheduler&type=date&legend=top-left)](https://www.star-history.com/#phamleduy04/texas-dps-scheduler&type=date&legend=top-left)
