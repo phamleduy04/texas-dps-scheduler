@@ -127,6 +127,7 @@ class TexasScheduler {
         };
         const response = await this.requestApi('/api/Eligibility', 'POST', requestBody).then(res => res.data);
         this.responseId = response[0].ResponseId;
+        log.info(`Response ID: ${this.responseId}`);
         return true;
     }
 
