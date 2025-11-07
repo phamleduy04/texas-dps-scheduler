@@ -43,6 +43,13 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         await dobInput.pressSequentially(config.personalInfo.dob.replaceAll('/', ''), { delay: _.random(200, 600) });
         const lastFourSSNInput = await page.locator('.v-input:nth-child(5) input');
         await lastFourSSNInput.pressSequentially(config.personalInfo.lastFourSSN, { delay: _.random(200, 600) });
+        const radioGroup = await page.locator('.v-input--radio-group');
+        await radioGroup.locator('label').nth(1).click();
+
+        const emailInput = await page.locator('input[id="email"]');
+        await emailInput.pressSequentially(config.personalInfo.email, { delay: _.random(200, 600) });
+        const verifyEmailInput = await page.locator('input[id="verifyEmail"]');
+        await verifyEmailInput.pressSequentially(config.personalInfo.email, { delay: _.random(200, 600) });
 
         log.dev('input personal info done');
 
@@ -50,8 +57,8 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
 
             page.on('response', async response => {
-                if (response.url() === 'https://apptapi.txdpsscheduler.com/api/auth' && response.status() === 200) {
-                    const body = await response.text();
+                if (response.url() === 'https://apptapi.txdpsscheduler.com/api/v1/account/auth' && response.status() === 200) {
+                    const body = await response.json();
                     clearTimeout(timeout);
                     resolve(body);
                 }
@@ -79,15 +86,15 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         };
 
         // Wait for the auth token
-        const captchaToken = (await captchaTokenPromise) as string;
+        const captchaToken = (await captchaTokenPromise) as { data: { token: string; eligibleCard: string } };
 
         await page.close();
         // Close the browser
         await browser.close();
 
         log.info('Get captcha token successfully!');
-        log.dev(`Captcha token: ${captchaToken}`);
-        return captchaToken;
+        log.dev(`Captcha token: ${captchaToken.data.token}`);
+        return captchaToken.data.token;
     } catch (err) {
         log.error('Error while getting captcha token: ', err as Error);
         log.info('Try to get captcha token again or manual set it in config.yml');
