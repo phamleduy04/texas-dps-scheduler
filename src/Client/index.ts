@@ -308,7 +308,7 @@ class TexasScheduler {
 
             log.info(`${location.Name} is Available on ${booking.FormattedStartDateTime}`);
 
-            let matchSpecificDates = this.isAvailableDateMatchMyDates(booking.FormattedStartDateTime);
+            const matchSpecificDates = this.isAvailableDateMatchMyDates(booking.FormattedStartDateTime);
             if (!matchSpecificDates) return;
             if (!this.queue.isPaused) this.queue.pause();
             if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
