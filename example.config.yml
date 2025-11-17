@@ -57,7 +57,7 @@ location:
   # Specific date you want to book
   # Put empty [''] for any date
   # MM/DD/YYYY format
-  specificDates: ['01/01/2026']
+  specificDates: ['']
   
 appSettings:
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
