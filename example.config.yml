@@ -54,7 +54,11 @@ location:
     # Number in 24h format, start = 6 and end = 18 means get appointment between 6 AM - 6 PM
     start: 6
     end: 18
-
+  # Specific date you want to book
+  # Put empty [''] for any date
+  # MM/DD/YYYY format
+  specificDates: ['']
+  
 appSettings:
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
   cancelIfExist: false

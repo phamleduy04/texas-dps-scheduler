@@ -202,7 +202,16 @@ class TexasScheduler {
     private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
         return locations.sort((a, b) => a.Distance - b.Distance).filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
     }
-
+    private isAvailableDateMatchMyDates(availableBookinDate: string) {
+        const myDates = this.config.location.specificDates;
+        if (!myDates?.length) return true;
+        
+        const matchedDate = myDates.find(date => availableBookinDate.includes(date));
+        if (matchedDate) {
+            console.log(`Available date ${availableBookinDate} matches with preferred date ${matchedDate}`);
+        }
+        return !!matchedDate;
+    }
     public async requestAvailableLocation(): Promise<void> {
         const response = await this.getAllLocation();
         if (response.length === 0) {
@@ -298,6 +307,9 @@ class TexasScheduler {
             const booking = filteredAvailabilityDates[0].AvailableTimeSlots[0];
 
             log.info(`${location.Name} is Available on ${booking.FormattedStartDateTime}`);
+
+            const matchSpecificDates = this.isAvailableDateMatchMyDates(booking.FormattedStartDateTime);
+            if (!matchSpecificDates) return;
             if (!this.queue.isPaused) this.queue.pause();
             if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
                 log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');

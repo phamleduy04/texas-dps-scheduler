@@ -34,6 +34,7 @@ const configZod = z.object({
                 end: z.number(),
             })
             .refine(checkStartLowerThanEnd, { message: 'Start number must be lower than end number' }),
+        specificDates: z.string().array().optional(),
     }),
     appSettings: z.object({
         cancelIfExist: z.boolean().default(false),
