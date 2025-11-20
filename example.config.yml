@@ -58,7 +58,7 @@ location:
   # Put empty [''] for any date
   # MM/DD/YYYY format
   specificDates: ['']
-  
+
 appSettings:
   # Put true/false without quotes if you want to cancel the appointment automatically if found existing appointment
   cancelIfExist: false
