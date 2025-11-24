@@ -463,6 +463,17 @@ class TexasScheduler {
                     Action: 'login',
                     Token: captchaToken,
                 },
+                CellPhone: '',
+                Email: this.config.personalInfo.email,
+                IsEmail: true,
+                IsMobile: false,
+                UserDetails: {
+                    CardNumber: '',
+                    DateOfBirth: this.config.personalInfo.dob,
+                    FirstName: this.config.personalInfo.firstName,
+                    LastName: this.config.personalInfo.lastName,
+                    LastFourDigitsSsn: this.config.personalInfo.lastFourSSN,
+                },
             };
 
             log.dev(`Captcha token: ${captchaToken}`);
