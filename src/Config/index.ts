@@ -5,14 +5,17 @@ import preferredDayList from '../Assets/preferredDay';
 import * as log from '../Log';
 import 'dotenv/config';
 import dayjs from 'dayjs';
+import path from 'path';
 
 const parseConfig = (): Config => {
-    if (!existsSync('./config.yml')) {
+    const configPath = path.resolve('config.yml');
+    if (!existsSync(configPath)) {
         log.error('Not found config.yml file');
         process.exit(0);
     }
 
-    const file = readFileSync('././config.yml', 'utf8');
+    // Fix: path traversal issue ././
+    const file = readFileSync(configPath, 'utf8');
     let configData = YAML.parse(file);
     configData = parsePersonalInfo(configData);
     configData.location.preferredDays = parsePreferredDays(configData.location.preferredDays);
@@ -49,6 +52,8 @@ function parsePreferredDays(preferredDay: string[]): number[] {
 function parsePersonalInfo(configData: Config) {
     if (!configData.personalInfo.loadFromEnv) return configData;
     log.info('Loading personal info from environment variables.');
+    // Check permissions of the environment variables or just don't log them.
+    // We already don't log them here.
     const { FIRSTNAME, LASTNAME, DOB, EMAIL, LASTFOURSSN, PHONENUMBER, CARDNUMBER } = process.env;
     if (!FIRSTNAME || !LASTNAME || !DOB || !EMAIL || !LASTFOURSSN) {
         log.error('Missing environment variables for personal info. Please refer to example.env file.');

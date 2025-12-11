@@ -1,5 +1,4 @@
-import https from 'https';
-import axios, { AxiosResponse } from 'axios';
+import axios, { AxiosResponse, AxiosInstance } from 'axios';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
 import * as log from '../Log';
@@ -7,7 +6,6 @@ import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
 import { getAuthTokenFromBroswer } from '../Browser';
 import { CreateCaptchaSolverTask, GetCaptchaSolverResult } from '../CaptchaSolver';
-dayjs.extend(isBetween);
 import prompts from 'prompts';
 import type { EligibilityPayload } from '../Interfaces/Eligibility';
 import type { AvailableLocationPayload, AvailableLocationResponse } from '../Interfaces/AvailableLocation';
@@ -18,11 +16,14 @@ import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/Ex
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
 import type { AuthPayload } from '../Interfaces/Auth';
 import { pushNotifcation } from '../PushNotification';
-
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
+import path from 'path';
 import PQueue from 'p-queue';
+import { Config } from '../Interfaces/Config';
 
-let packagejson;
+dayjs.extend(isBetween);
+
+let packagejson: { version: string | null };
 try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
     packagejson = require('../../package.json');
@@ -31,7 +32,7 @@ try {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         packagejson = require('../package.json');
     } catch {
-        packagejson.version = null;
+        packagejson = { version: null };
     }
 }
 
@@ -40,17 +41,19 @@ interface CaptchaResult {
     userAgent: string;
 }
 
+/**
+ * TexasScheduler handles the process of checking for and booking DPS appointments.
+ * It manages configuration, authentication, location scanning, and booking logic.
+ */
 class TexasScheduler {
-    private readonly requestClient = axios.create({
-        baseURL: 'https://apptapi.txdpsscheduler.com',
-        httpsAgent: new https.Agent({ rejectUnauthorized: false }),
-    });
-    public config = parseConfig();
+    private readonly requestClient: AxiosInstance;
+    public config: Config;
     public existBooking: { exist: boolean; response: ExistBookingResponse[] } | undefined;
 
     private availableLocation: AvailableLocationResponse[] | null = null;
     private isBooked = false;
     private isHolded = false;
+    // Using PQueue to limit concurrency of operations, specifically location scanning.
     private readonly queue = new PQueue({ concurrency: 1 });
     private authToken = '';
     private readonly maxCaptchaSolverRetries = 25;
@@ -58,26 +61,47 @@ class TexasScheduler {
     private userAgent: string | null = null;
 
     public constructor() {
-        if (this.config.appSettings.webserver)
-            // eslint-disable-next-line  @typescript-eslint/no-require-imports
-            require('http')
-                .createServer((req: any, res: any) => res.end('Bot is alive!'))
-                .listen(process.env.PORT || 3000);
-        log.info(`Texas Scheduler v${packagejson.version} is starting...`);
-        log.info('Requesting Available Location....');
-        if (!existsSync('cache')) mkdirSync('cache');
-        this.run();
+        this.config = parseConfig();
+
+        this.requestClient = axios.create({
+            baseURL: 'https://apptapi.txdpsscheduler.com',
+            // SECURITY: SSL verification is enabled by default. Do not disable it.
+            // Removed: httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+        });
+
+        if (this.config.appSettings.webserver) {
+            this.startWebServer();
+        }
     }
 
-    public async run() {
-        if (existsSync('././cache/token.tmp')) {
+    /**
+     * Starts the scheduler process.
+     */
+    public async start(): Promise<void> {
+        log.info(`Texas Scheduler v${packagejson.version} is starting...`);
+
+        if (!existsSync('cache')) {
+            mkdirSync('cache');
+        }
+
+        log.info('Requesting Available Location....');
+
+        const tokenPath = path.join('cache', 'token.tmp');
+        if (existsSync(tokenPath)) {
             log.info('Getting auth token from cache...');
-            this.authToken = readFileSync('././cache/token.tmp', 'utf-8');
-        } else await this.getAuthToken();
-        if (this.responseId === null) await this.getResponseId();
+            this.authToken = readFileSync(tokenPath, 'utf-8');
+        } else {
+            await this.getAuthToken();
+        }
+
+        if (this.responseId === null) {
+            await this.getResponseId();
+        }
+
         this.existBooking = await this.checkExistBooking();
         const { exist, response } = this.existBooking;
-        if (exist) {
+
+        if (exist && response.length > 0) {
             log.warn(`You have an existing booking at ${response[0].SiteName} ${dayjs(response[0].BookingDateTime).format('MM/DD/YYYY hh:mm A')}`);
             if (!this.config.appSettings.cancelIfExist) {
                 log.warn(`The bot will continue to run, but WILL NOT cancel existing booking if it found a new one`);
@@ -85,8 +109,21 @@ class TexasScheduler {
                 log.warn(`The bot will continue to run, but will cancel existing booking if it found a new one`);
             }
         }
+
         await this.requestAvailableLocation();
         await this.getLocationDatesAll();
+    }
+
+    private startWebServer() {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const http = require('http');
+        const port = process.env.PORT || 3000;
+
+        http.createServer((req: unknown, res: import('http').ServerResponse) => {
+            res.end('Bot is alive!');
+        }).listen(port);
+
+        log.info(`Webserver started on port ${port}`);
     }
 
     private async checkExistBooking() {
@@ -100,7 +137,7 @@ class TexasScheduler {
         const response: ExistBookingResponse[] = await this.requestApi('/api/Booking', 'POST', requestBody)
             .then(res => res.data)
             .then((res: ExistBookingResponse[]) => res.filter((booking: ExistBookingResponse) => booking.ServiceTypeId == this.config.personalInfo.typeId));
-        // if no booking found, the api will return empty array
+
         if (response.length > 0) return { exist: true, response };
         return { exist: false, response };
     }
@@ -126,9 +163,12 @@ class TexasScheduler {
             CardNumber: this.config.personalInfo.cardNumber,
         };
         const response = await this.requestApi('/api/Eligibility', 'POST', requestBody).then(res => res.data);
-        this.responseId = response[0].ResponseId;
-        log.info(`Response ID: ${this.responseId}`);
-        return true;
+        if (response && response[0]) {
+            this.responseId = response[0].ResponseId;
+            log.info(`Response ID: ${this.responseId}`);
+            return true;
+        }
+        return false;
     }
 
     public async getAllLocation(): Promise<AvailableLocationResponse[]> {
@@ -137,12 +177,12 @@ class TexasScheduler {
         const typeId = this.config.personalInfo.typeId || 71;
 
         const finalArray: AvailableLocationResponse[] = [];
-        if (cityNameList.length > 0 && cityNameList[0] !== '') {
+        if (cityNameList && cityNameList.length > 0 && cityNameList[0] !== '') {
             for (const cityName of cityNameList) {
                 const response = await this.getLocationForCity(cityName, typeId);
                 finalArray.push(...response);
             }
-        } else {
+        } else if (zipcodeList) {
             for (const zipCode of zipcodeList) {
                 const response = await this.getLocationForZipCode(zipCode, typeId);
                 finalArray.push(...response);
@@ -160,15 +200,13 @@ class TexasScheduler {
         };
 
         const response = await this.fetchLocationData(requestBody);
-        if (response === null) {
+        if (response === null || response.length === 0) {
             log.warn(`No location found for city: ${cityName}`);
-            sleep.setTimeout(2000);
+            await sleep.setTimeout(2000);
             return [];
         }
 
-        if (response.length !== 0) {
-            log.info(`Found ${response.length} locations for City: ${cityName}`);
-        }
+        log.info(`Found ${response.length} locations for City: ${cityName}`);
         response.forEach(el => (el.CityName = cityName));
         return response;
     }
@@ -182,15 +220,13 @@ class TexasScheduler {
         };
 
         const response = await this.fetchLocationData(requestBody);
-        if (response === null) {
+        if (response === null || response.length === 0) {
             log.warn(`No location found for zipcode: ${zipCode}`);
-            sleep.setTimeout(2000);
+            await sleep.setTimeout(2000);
             return [];
         }
 
-        if (response.length !== 0) {
-            log.info(`Found ${response.length} locations for zipcode: ${zipCode}`);
-        }
+        log.info(`Found ${response.length} locations for zipcode: ${zipCode}`);
         response.forEach(el => (el.ZipCode = zipCode));
         return response;
     }
@@ -202,6 +238,7 @@ class TexasScheduler {
     private filterAndSortLocations(locations: AvailableLocationResponse[]): AvailableLocationResponse[] {
         return locations.sort((a, b) => a.Distance - b.Distance).filter((elem, index, self) => self.findIndex(obj => obj.Id === elem.Id) === index);
     }
+
     private isAvailableDateMatchMyDates(availableBookinDate: string) {
         const myDates = this.config.location.specificDates;
         // Check if empty array OR array with only empty strings
@@ -212,15 +249,18 @@ class TexasScheduler {
         }
         return !!matchedDate;
     }
+
     public async requestAvailableLocation(): Promise<void> {
         const response = await this.getAllLocation();
         if (response.length === 0) {
             log.error('No Available location found! You can try add more zipcodes or set city name!');
             process.exit(0);
         }
+        const locationCachePath = path.join('cache', 'location.json');
+
         if (this.config.location.pickDPSLocation) {
-            if (existsSync('././cache/location.json')) {
-                this.availableLocation = JSON.parse(readFileSync('././cache/location.json', 'utf-8'));
+            if (existsSync(locationCachePath)) {
+                this.availableLocation = JSON.parse(readFileSync(locationCachePath, 'utf-8'));
                 log.info('Found cached location selection, using cached location selection');
                 log.info('If you want to change location selection, please delete cache folder!');
                 return;
@@ -240,7 +280,7 @@ class TexasScheduler {
                 process.exit(1);
             }
             this.availableLocation = userResponse.location;
-            writeFileSync('././cache/location.json', JSON.stringify(userResponse.location));
+            writeFileSync(locationCachePath, JSON.stringify(userResponse.location));
             return;
         }
         const filteredResponse = response.filter((location: AvailableLocationResponse) => location.Distance < this.config.location.miles);
@@ -257,7 +297,13 @@ class TexasScheduler {
     private async getLocationDatesAll() {
         log.info('Checking Available Location Dates....');
         if (!this.availableLocation) return;
-        const getLocationFunctions = this.availableLocation.map(location => () => sleep.setTimeout(5000).then(() => this.getLocationDates(location)));
+
+        // Create an infinite loop of checking tasks
+        const getLocationFunctions = this.availableLocation.map(location => async () => {
+            await sleep.setTimeout(5000);
+            await this.getLocationDates(location);
+        });
+
         for (;;) {
             console.log('--------------------------------------------------------------------------------');
             await this.queue.addAll(getLocationFunctions).catch(() => null);
@@ -304,20 +350,25 @@ class TexasScheduler {
                 };
             }).filter(date => date.AvailableTimeSlots.length > 0);
 
-            const booking = filteredAvailabilityDates[0].AvailableTimeSlots[0];
+            if (filteredAvailabilityDates.length > 0) {
+                const booking = filteredAvailabilityDates[0].AvailableTimeSlots[0];
+                log.info(`${location.Name} is Available on ${booking.FormattedStartDateTime}`);
 
-            log.info(`${location.Name} is Available on ${booking.FormattedStartDateTime}`);
+                const matchSpecificDates = this.isAvailableDateMatchMyDates(booking.FormattedStartDateTime);
+                if (!matchSpecificDates) return;
 
-            const matchSpecificDates = this.isAvailableDateMatchMyDates(booking.FormattedStartDateTime);
-            if (!matchSpecificDates) return;
-            if (!this.queue.isPaused) this.queue.pause();
-            if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
-                log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');
-                process.exit(0);
+                if (!this.queue.isPaused) this.queue.pause();
+
+                if (!this.config.appSettings.cancelIfExist && this.existBooking?.exist) {
+                    log.warn('cancelIfExist is disabled! Please cancel existing appointment manually!');
+                    process.exit(0);
+                }
+
+                await this.holdSlot(booking, location);
+                return Promise.resolve(true);
             }
-            this.holdSlot(booking, location);
-            return Promise.resolve(true);
         }
+
         log.info(
             `${location.Name} is not Available in ${
                 locationConfig.sameDay
@@ -330,7 +381,7 @@ class TexasScheduler {
     }
 
     private async requestApi(path: string, method: 'GET' | 'POST', body: object, retryTime = 0): Promise<AxiosResponse> {
-        const headers = {
+        const headers: Record<string, string> = {
             'Content-Type': 'application/json;charset=UTF-8',
             Origin: 'https://www.txdpsscheduler.com',
             Referer: 'https://www.txdpsscheduler.com',
@@ -339,43 +390,53 @@ class TexasScheduler {
         if (this.authToken) headers['Authorization'] = this.authToken;
         if (this.userAgent) headers['User-Agent'] = this.userAgent;
 
-        const response = await this.requestClient.request({
-            method,
-            url: path,
-            headers,
-            timeout: this.config.appSettings.headersTimeout,
-            data: method === 'POST' ? body : undefined, // Include body only for POST requests
-            validateStatus: () => true,
-        });
+        try {
+            const response = await this.requestClient.request({
+                method,
+                url: path,
+                headers,
+                timeout: this.config.appSettings.headersTimeout,
+                data: method === 'POST' ? body : undefined,
+                validateStatus: () => true,
+            });
 
-        if (response.status !== 200) {
-            log.warn(`Got ${response.status} status code`);
-            log.info(`Endpoint: ${path}`);
-            log.dev(`Auth token: ${headers['Authorization']}`);
-            if (response.status === 401) {
-                log.info('Auth token expired! Try to get new token...');
-                await this.getAuthToken();
-                const repsonseIdStatus = await this.getResponseId();
+            if (response.status !== 200) {
+                log.warn(`Got ${response.status} status code`);
+                log.info(`Endpoint: ${path}`);
+                // REDACTED: log.dev(`Auth token: ${headers['Authorization']}`);
 
-                if (repsonseIdStatus) {
-                    log.info('Auth token valid!');
-                    log.info('Sleeping for 5s...');
-                    await sleep.setTimeout(5000);
+                if (response.status === 401) {
+                    log.info('Auth token expired! Try to get new token...');
+                    await this.getAuthToken();
+                    const repsonseIdStatus = await this.getResponseId();
+
+                    if (repsonseIdStatus) {
+                        log.info('Auth token valid!');
+                        log.info('Sleeping for 5s...');
+                        await sleep.setTimeout(5000);
+                    }
                 }
+                if (response.status === 403) {
+                    log.warn('Got rate limited, sleep for 10s...');
+                    await sleep.setTimeout(10000);
+                    return this.requestApi(path, method, body, retryTime + 1);
+                }
+                if (retryTime < this.config.appSettings.maxRetry) {
+                    log.info(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
+                    return this.requestApi(path, method, body, retryTime + 1);
+                }
+                log.error(`Got ${response.status} status code, retrying failed!`);
+                process.exit(1);
             }
-            if (response.status === 403) {
-                log.warn('Got rate limited, sleep for 10s...');
-                await sleep.setTimeout(10000);
-                return this.requestApi(path, method, body, retryTime + 1);
-            }
+            return response;
+        } catch (error) {
             if (retryTime < this.config.appSettings.maxRetry) {
-                log.info(`Retrying failed request... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
+                log.info(`Request failed with error: ${(error as Error).message}. Retrying... (Retry ${retryTime + 1}/${this.config.appSettings.maxRetry})`);
                 return this.requestApi(path, method, body, retryTime + 1);
             }
-            log.error(`Got ${response.status} status code, retrying failed!`);
+            log.error('Request failed after max retries', error as Error);
             process.exit(1);
         }
-        return response;
     }
 
     private async holdSlot(booking: AvailableTimeSlots, location: AvailableLocationResponse) {
@@ -387,25 +448,33 @@ class TexasScheduler {
             Last4Ssn: this.config.personalInfo.lastFourSSN,
             SlotId: booking.SlotId,
         };
-        const response = (await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.data)) as HoldSlotResponse;
-        if (response.SlotHeldSuccessfully !== true) {
-            log.error(`Failed to hold slot: ${response.ErrorMessage}`);
+
+        try {
+            const response = (await this.requestApi('/api/HoldSlot', 'POST', requestBody).then(res => res.data)) as HoldSlotResponse;
+            if (response.SlotHeldSuccessfully !== true) {
+                log.error(`Failed to hold slot: ${response.ErrorMessage}`);
+                if (this.queue.isPaused) this.queue.start();
+                return;
+            }
+            log.info('Slot hold successfully. Sleeping for 5s...');
+            this.isHolded = true;
+            await sleep.setTimeout(5000);
+            await this.bookSlot(booking, location);
+        } catch (error) {
+            log.error('Error holding slot', error as Error);
             if (this.queue.isPaused) this.queue.start();
-            return;
         }
-        log.info('Slot hold successfully. Sleeping for 5s...');
-        this.isHolded = true;
-        await sleep.setTimeout(5000);
-        await this.bookSlot(booking, location);
     }
 
     private async bookSlot(booking: AvailableTimeSlots, location: AvailableLocationResponse) {
         if (this.isBooked) return;
         log.info('Booking slot....');
-        if (this.existBooking?.exist) {
+
+        if (this.existBooking?.exist && this.existBooking.response.length > 0) {
             log.info(`Canceling existing booking ${this.existBooking.response[0].ConfirmationNumber}`);
             await this.cancelBooking(this.existBooking.response[0].ConfirmationNumber);
         }
+
         const requestBody: BookSlotPayload = {
             AdaRequired: false,
             BookingDateTime: booking.StartDateTime,
@@ -426,6 +495,7 @@ class TexasScheduler {
         };
 
         const response = await this.requestApi('/api/NewBooking', 'POST', requestBody);
+
         if (response.status === 200) {
             const bookingInfo = response.data as BookSlotResponse;
             if (bookingInfo?.Booking === null) {
@@ -440,6 +510,7 @@ class TexasScheduler {
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             log.info(`Visiting this link to print your booking:`);
             log.info(appointmentURL);
+
             if (this.config.appSettings.pushNotifcation.enabled) {
                 log.info('Sending notification...');
                 await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
@@ -450,7 +521,7 @@ class TexasScheduler {
         } else {
             if (this.queue.isPaused) this.queue.start();
             log.error('Failed to book slot');
-            log.error(response.data);
+            log.error(JSON.stringify(response.data));
         }
     }
 
@@ -476,8 +547,9 @@ class TexasScheduler {
                 },
             };
 
-            log.dev(`Captcha token: ${captchaToken}`);
-            log.dev(`Request body: ${JSON.stringify(requestBody)}`);
+            // REDACTED: log.dev(`Captcha token: ${captchaToken}`);
+            // REDACTED: log.dev(`Request body: ${JSON.stringify(requestBody)}`);
+
             const response = (await this.requestApi('/api/Auth', 'POST', requestBody).then(res => res.data)) as string;
             this.authToken = response;
         } else if (this.config.appSettings.captcha.strategy === 'browser') {
@@ -494,7 +566,7 @@ class TexasScheduler {
         }
 
         if (this.authToken) {
-            writeFileSync('././cache/token.tmp', this.authToken);
+            writeFileSync(path.join('cache', 'token.tmp'), this.authToken);
         }
     }
 
@@ -505,15 +577,18 @@ class TexasScheduler {
         }
         if (!taskId) taskId = await CreateCaptchaSolverTask();
         const captchaResult = await this.getCaptchaResult(taskId);
+
         if (captchaResult === undefined) {
             await sleep.setTimeout(2000);
             return this.getCaptchaToken(taskId, retries + 1);
         }
+
         if (captchaResult === null) {
             log.error('get captcha token failed! will create new task and sleep 10s!');
             await sleep.setTimeout(10000);
             return this.getCaptchaToken(null, retries + 1);
         }
+
         log.info('Captcha token received successfully');
         this.userAgent = captchaResult.userAgent;
         return captchaResult.captchaToken;
