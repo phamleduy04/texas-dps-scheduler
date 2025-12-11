@@ -34,7 +34,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
 
         await nodeTimer.setTimeout(_.random(500, 1500)); // Random delay between 500ms and 1500ms
 
-        log.dev('inputting personal info..');
+        log.info('Inputting personal info...');
         const firstNameInput = await page.locator('.v-input:nth-child(2) input');
         await firstNameInput.pressSequentially(config.personalInfo.firstName, { delay: _.random(200, 600) });
         const lastNameInput = await page.locator('.v-input:nth-child(3) input');
@@ -51,7 +51,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         const verifyEmailInput = await page.locator('input[id="verifyEmail"]');
         await verifyEmailInput.pressSequentially(config.personalInfo.email, { delay: _.random(200, 600) });
 
-        log.dev('input personal info done');
+        log.info('Input personal info done');
 
         const captchaTokenPromise = new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Auth token retrieval timed out after 60 seconds')), 60000);
@@ -74,7 +74,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         });
 
         const tryAgainDialog = async (page: Page, retryTime = 0) => {
-            log.dev('google catpcha score too low, trying again!');
+            log.info('Google reCaptcha score too low, trying again!');
             if (retryTime > 10) throw new Error('Captcha token retrieval failled!');
             await nodeTimer.setTimeout(_.random(1000, 3000, false));
             await page.click('.v-dialog--active > div > div > button');
@@ -93,7 +93,7 @@ export const getAuthTokenFromBroswer = async (): Promise<string> => {
         await browser.close();
 
         log.info('Get captcha token successfully!');
-        log.dev(`Captcha token: ${captchaToken.data.token}`);
+        // REDACTED: log.dev(`Captcha token: ${captchaToken.data.token}`);
         return captchaToken.data.token;
     } catch (err) {
         log.error('Error while getting captcha token: ', err as Error);

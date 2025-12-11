@@ -1,3 +1,4 @@
+import https from 'https';
 import axios, { AxiosResponse, AxiosInstance } from 'axios';
 import sleep from 'timers/promises';
 import parseConfig from '../Config';
@@ -65,8 +66,8 @@ class TexasScheduler {
 
         this.requestClient = axios.create({
             baseURL: 'https://apptapi.txdpsscheduler.com',
-            // SECURITY: SSL verification is enabled by default. Do not disable it.
-            // Removed: httpsAgent: new https.Agent({ rejectUnauthorized: false }),
+            // Allow user to disable SSL verification if needed (default: true/secure).
+            httpsAgent: new https.Agent({ rejectUnauthorized: this.config.appSettings.sslVerification }),
         });
 
         if (this.config.appSettings.webserver) {
@@ -82,6 +83,10 @@ class TexasScheduler {
 
         if (!existsSync('cache')) {
             mkdirSync('cache');
+        }
+
+        if (!this.config.appSettings.sslVerification) {
+            log.warn('SSL Certificate Verification is DISABLED. This exposes you to Man-In-The-Middle attacks.');
         }
 
         log.info('Requesting Available Location....');

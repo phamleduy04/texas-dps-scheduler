@@ -42,6 +42,8 @@ const configZod = z.object({
         webserver: z.boolean().default(false),
         headersTimeout: z.number().default(20000),
         maxRetry: z.number().default(3),
+        // Security: SSL verification toggle. Default to true (safe).
+        sslVerification: z.boolean().default(true),
         captcha: z
             .object({
                 strategy: z.enum(['browser', 'solver', 'manual']).default('browser'),
