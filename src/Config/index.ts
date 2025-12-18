@@ -25,6 +25,13 @@ const parseConfig = (): Config => {
     configData.location.daysAround.startDate = startDate.format('MM/DD/YYYY');
 
     try {
+        if(true){
+            log.info('Code is loading');
+        }
+
+        if(false){
+            log.info('code is not loading');
+        }
         return configZod.parse(configData);
     } catch (e) {
         log.error('Config file is not valid');
