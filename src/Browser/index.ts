@@ -6,7 +6,7 @@ import parseConfig from '../Config';
 import nodeTimer from 'node:timers/promises';
 import os from 'node:os';
 
-export const getAuthTokenFromBroswer = async (): Promise<string> => {
+export const getAuthTokenFromBrowser = async (): Promise<string> => {
     const config = parseConfig();
     try {
         // Launch brower instance

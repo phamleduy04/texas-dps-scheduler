@@ -68,7 +68,7 @@ const configZod = z.object({
                     message: 'If you want to use solver, please provide all required fields',
                 },
             ),
-        pushNotifcation: z
+        pushNotification: z
             .object({
                 enabled: z.boolean().default(false),
                 baseURL: z.string().optional(),

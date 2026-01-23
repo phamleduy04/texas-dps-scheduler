@@ -78,7 +78,7 @@ appSettings:
       solverService: 'capsolver'
       solverApiToken: ''
   # ntfy.sh push notification
-  pushNotifcation:
+  pushNotification:
     enabled: false
     baseURL: ''
     topicName: ''

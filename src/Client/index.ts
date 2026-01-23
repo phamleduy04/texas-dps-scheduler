@@ -5,7 +5,7 @@ import parseConfig from '../Config';
 import * as log from '../Log';
 import dayjs from 'dayjs';
 import isBetween from 'dayjs/plugin/isBetween';
-import { getAuthTokenFromBroswer } from '../Browser';
+import { getAuthTokenFromBrowser } from '../Browser';
 import { CreateCaptchaSolverTask, GetCaptchaSolverResult } from '../CaptchaSolver';
 dayjs.extend(isBetween);
 import prompts from 'prompts';
@@ -17,7 +17,7 @@ import type { BookSlotPayload, BookSlotResponse } from '../Interfaces/BookSlot';
 import type { ExistBookingPayload, ExistBookingResponse } from '../Interfaces/ExistBooking';
 import type { CancelBookingPayload } from '../Interfaces/CancelBooking';
 import type { AuthPayload } from '../Interfaces/Auth';
-import { pushNotifcation } from '../PushNotification';
+import { pushNotification } from '../PushNotification';
 
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import PQueue from 'p-queue';
@@ -50,7 +50,7 @@ class TexasScheduler {
 
     private availableLocation: AvailableLocationResponse[] | null = null;
     private isBooked = false;
-    private isHolded = false;
+    private isHeld = false;
     private readonly queue = new PQueue({ concurrency: 1 });
     private authToken = '';
     private readonly maxCaptchaSolverRetries = 25;
@@ -386,7 +386,7 @@ class TexasScheduler {
     }
 
     private async holdSlot(booking: AvailableTimeSlots, location: AvailableLocationResponse) {
-        if (this.isHolded) return;
+        if (this.isHeld) return;
         const requestBody: HoldSlotPayload = {
             DateOfBirth: this.config.personalInfo.dob,
             FirstName: this.config.personalInfo.firstName,
@@ -401,7 +401,7 @@ class TexasScheduler {
             return;
         }
         log.info('Slot hold successfully. Sleeping for 5s...');
-        this.isHolded = true;
+        this.isHeld = true;
         await sleep.setTimeout(5000);
         await this.bookSlot(booking, location);
     }
@@ -439,7 +439,7 @@ class TexasScheduler {
                 if (this.queue.isPaused) this.queue.start();
                 log.error('Failed to book slot');
                 log.error(JSON.stringify(bookingInfo));
-                this.isHolded = false;
+                this.isHeld = false;
                 return;
             }
             const appointmentURL = `https://www.txdpsscheduler.com/?b=${bookingInfo.Booking.ConfirmationNumber}`;
@@ -447,9 +447,9 @@ class TexasScheduler {
             log.info(`Slot booked successfully. Confirmation Number: ${bookingInfo.Booking.ConfirmationNumber}`);
             log.info(`Visiting this link to print your booking:`);
             log.info(appointmentURL);
-            if (this.config.appSettings.pushNotifcation.enabled) {
+            if (this.config.appSettings.pushNotification.enabled) {
                 log.info('Sending notification...');
-                await pushNotifcation(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
+                await pushNotification(`Booked for ${this.config.personalInfo.firstName} ${this.config.personalInfo.lastName}. URL: ${appointmentURL}`).catch(error => {
                     log.error('Failed to send notification', error);
                 });
             }
@@ -488,7 +488,7 @@ class TexasScheduler {
             const response = (await this.requestApi('/api/Auth', 'POST', requestBody).then(res => res.data)) as string;
             this.authToken = response;
         } else if (this.config.appSettings.captcha.strategy === 'browser') {
-            const token = await getAuthTokenFromBroswer();
+            const token = await getAuthTokenFromBrowser();
             this.authToken = token;
         } else if (this.config.appSettings.captcha.strategy === 'manual') {
             const response = await prompts({
