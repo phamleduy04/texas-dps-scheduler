@@ -75,7 +75,7 @@ export const getAuthTokenFromBrowser = async (): Promise<string> => {
 
         const tryAgainDialog = async (page: Page, retryTime = 0) => {
             log.dev('google catpcha score too low, trying again!');
-            if (retryTime > 10) throw new Error('Captcha token retrieval failled!');
+            if (retryTime > 10) throw new Error('Captcha token retrieval failed!');
             await nodeTimer.setTimeout(_.random(1000, 3000, false));
             await page.click('.v-dialog--active > div > div > button');
             await nodeTimer.setTimeout(_.random(1000, 3000, false));
