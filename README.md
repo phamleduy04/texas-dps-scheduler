@@ -30,4 +30,4 @@ Capsolver is a platform that provides APIs to solve CAPTCHAs. You can use Capsol
 
 ## Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=phamleduy04/texas-dps-scheduler&type=date&legend=top-left)](https://www.star-history.com/#phamleduy04/texas-dps-scheduler&type=date&legend=top-left)
+[![Star History Chart](https://star-history.dera.page/svg?repos=phamleduy04/texas-dps-scheduler&type=date&legend=top-left)](https://star-history.dera.page/#phamleduy04/texas-dps-scheduler&type=date&legend=top-left)
