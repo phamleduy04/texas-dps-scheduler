@@ -1,5 +1,9 @@
 # texas-dps-scheduler
 
+> [!TIP]
+> **Too much work to set this up yourself?** Let [License Now TX](https://licensenowtx.com) find and book your DPS appointment for you.
+> Use code **`BETATEST`** at checkout for **40% off**: $6 instead of $10. (first 100 users)
+
 This app will find sameday or ~~nearest 7 day~~ (can customize now) appointments and schedulle it automatically!
 
 ![Badge](https://hitscounter.dev/api/hit?url=https%3A%2F%2Fgithub.com%2Fphamleduy04%2Ftexas-dps-scheduler%2F&label=Visits&icon=github&color=%23198754&message=&style=flat&tz=UTC)[![DeepScan grade](https://deepscan.io/api/teams/25628/projects/28491/branches/919222/badge/grade.svg)](https://deepscan.io/dashboard#view=project&tid=25628&pid=28491&bid=919222)
